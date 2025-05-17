@@ -1,38 +1,39 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:gestion_immo/core/config/app_config.dart';
+import 'package:gestion_immo/data/services/auth_service.dart';
 
-class LocationService {
+class CommoditeService {
   final String baseUrl = AppConfig.apiBaseUrl;
+  final AuthService _authService = AuthService();
 
-  Future<List<dynamic>> getLocations() async {
-    print('Début de l\'appel à /locations/');
-    final url = Uri.parse('$baseUrl/locations/');
+  Future<List<dynamic>> getCommodites() async {
+    print('Début de l\'appel à /commodites/');
+    final url = Uri.parse('$baseUrl/commodites/');
+    final token = await _authService.getAccessToken();
+    if (token == null) {
+      await _authService.simulateLogin();
+      return getCommodites();
+    }
     try {
       final response = await http.get(
         url,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(Duration(seconds: 10));
       print(
-          'Réponse API (locations): ${response.statusCode} - ${response.body}');
+          'Réponse API (commodites): ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        // Extraire la liste 'results' de la réponse paginée
-        if (data is Map<String, dynamic> && data.containsKey('results')) {
-          return data['results'] as List<dynamic>;
-        } else {
-          throw Exception(
-              'Structure de réponse inattendue : champ "results" manquant');
-        }
+        return jsonDecode(response.body);
       } else {
         throw Exception(
             'Erreur API: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      print('Erreur lors de l\'appel à /locations/: $e');
+      print('Erreur lors de l\'appel à /commodites/: $e');
       if (e.toString().contains('Failed to fetch') ||
           e.toString().contains('SocketException')) {
         throw Exception(
@@ -41,7 +42,7 @@ class LocationService {
         throw Exception(
             'Erreur : Le serveur n\'a pas répondu dans les 10 secondes.');
       }
-      throw Exception('Erreur lors de l\'appel à /locations/: $e');
+      throw Exception('Erreur lors de l\'appel à /commodites/: $e');
     }
   }
 }

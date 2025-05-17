@@ -1,30 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:gestion_immo/data/services/agence_service.dart';
+import 'package:gestion_immo/data/services/photo_service.dart';
 
-class AgenciesScreen extends StatefulWidget {
-  const AgenciesScreen({super.key});
+class PhotosScreen extends StatefulWidget {
+  const PhotosScreen({super.key});
 
   @override
-  _AgenciesScreenState createState() => _AgenciesScreenState();
+  _PhotosScreenState createState() => _PhotosScreenState();
 }
 
-class _AgenciesScreenState extends State<AgenciesScreen> {
-  final AgenceService _agenceService = AgenceService();
-  List<dynamic> agences = [];
+class _PhotosScreenState extends State<PhotosScreen> {
+  final PhotoService _photoService = PhotoService();
+  List<dynamic> photos = [];
   String? error;
 
   @override
   void initState() {
     super.initState();
-    _fetchAgences();
+    _fetchPhotos();
   }
 
-  Future<void> _fetchAgences() async {
+  Future<void> _fetchPhotos() async {
     try {
-      final data = await _agenceService.getAgences();
+      final data = await _photoService.getPhotos();
       setState(() {
-        agences = data;
+        photos = data;
         error = null;
       });
     } catch (e) {
@@ -38,43 +38,42 @@ class _AgenciesScreenState extends State<AgenciesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agences'),
+        title: const Text('Photos'),
       ),
       body: error != null
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(MdiIcons.officeBuilding, size: 80, color: Colors.grey),
+                  Icon(MdiIcons.camera, size: 80, color: Colors.grey),
                   const SizedBox(height: 16),
                   Text('Erreur lors du chargement : $error',
                       style: TextStyle(color: Colors.red)),
                 ],
               ),
             )
-          : agences.isEmpty
+          : photos.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(MdiIcons.officeBuilding,
-                          size: 80, color: Colors.grey),
+                      Icon(MdiIcons.camera, size: 80, color: Colors.grey),
                       SizedBox(height: 16),
-                      Text('Aucune agence trouvée',
+                      Text('Aucune photo trouvée',
                           style: TextStyle(color: Colors.grey)),
                     ],
                   ),
                 )
               : ListView.builder(
-                  itemCount: agences.length,
+                  itemCount: photos.length,
                   itemBuilder: (context, index) {
-                    final agence = agences[index];
+                    final photo = photos[index];
                     return ListTile(
-                      title: Text(agence['nom'] ?? 'Agence sans nom'),
-                      subtitle:
-                          Text(agence['adresse'] ?? 'Adresse non disponible'),
+                      title: Text('Photo ${photo['id']?.toString() ?? 'N/A'}'),
+                      subtitle: Text(
+                          'Maison ID: ${photo['maison_id']?.toString() ?? 'N/A'}'),
                       onTap: () {
-                        print('Clic sur ${agence['nom']}');
+                        print('Clic sur photo ${photo['id']}');
                       },
                     );
                   },

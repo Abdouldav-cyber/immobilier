@@ -1,30 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:gestion_immo/data/services/agence_service.dart';
+import 'package:gestion_immo/data/services/document_service.dart';
 
-class AgenciesScreen extends StatefulWidget {
-  const AgenciesScreen({super.key});
+class DocumentsScreen extends StatefulWidget {
+  const DocumentsScreen({super.key});
 
   @override
-  _AgenciesScreenState createState() => _AgenciesScreenState();
+  _DocumentsScreenState createState() => _DocumentsScreenState();
 }
 
-class _AgenciesScreenState extends State<AgenciesScreen> {
-  final AgenceService _agenceService = AgenceService();
-  List<dynamic> agences = [];
+class _DocumentsScreenState extends State<DocumentsScreen> {
+  final DocumentService _documentService = DocumentService();
+  List<dynamic> documents = [];
   String? error;
 
   @override
   void initState() {
     super.initState();
-    _fetchAgences();
+    _fetchDocuments();
   }
 
-  Future<void> _fetchAgences() async {
+  Future<void> _fetchDocuments() async {
     try {
-      final data = await _agenceService.getAgences();
+      final data = await _documentService.getDocuments();
       setState(() {
-        agences = data;
+        documents = data;
         error = null;
       });
     } catch (e) {
@@ -38,43 +38,41 @@ class _AgenciesScreenState extends State<AgenciesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agences'),
+        title: const Text('Documents'),
       ),
       body: error != null
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(MdiIcons.officeBuilding, size: 80, color: Colors.grey),
+                  Icon(MdiIcons.fileDocument, size: 80, color: Colors.grey),
                   const SizedBox(height: 16),
                   Text('Erreur lors du chargement : $error',
                       style: TextStyle(color: Colors.red)),
                 ],
               ),
             )
-          : agences.isEmpty
+          : documents.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(MdiIcons.officeBuilding,
-                          size: 80, color: Colors.grey),
+                      Icon(MdiIcons.fileDocument, size: 80, color: Colors.grey),
                       SizedBox(height: 16),
-                      Text('Aucune agence trouvée',
+                      Text('Aucun document trouvé',
                           style: TextStyle(color: Colors.grey)),
                     ],
                   ),
                 )
               : ListView.builder(
-                  itemCount: agences.length,
+                  itemCount: documents.length,
                   itemBuilder: (context, index) {
-                    final agence = agences[index];
+                    final document = documents[index];
                     return ListTile(
-                      title: Text(agence['nom'] ?? 'Agence sans nom'),
-                      subtitle:
-                          Text(agence['adresse'] ?? 'Adresse non disponible'),
+                      title: Text(document['nom'] ?? 'Document sans nom'),
+                      subtitle: Text('Type: ${document['type'] ?? 'N/A'}'),
                       onTap: () {
-                        print('Clic sur ${agence['nom']}');
+                        print('Clic sur document ${document['nom']}');
                       },
                     );
                   },

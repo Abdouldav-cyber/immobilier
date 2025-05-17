@@ -1,34 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:gestion_immo/data/services/location_service.dart';
+import 'package:gestion_immo/data/services/paiement_service.dart';
 
-class LocationsScreen extends StatefulWidget {
-  const LocationsScreen({super.key});
+class PaimentsScreen extends StatefulWidget {
+  const PaimentsScreen({super.key});
 
   @override
-  _LocationsScreenState createState() => _LocationsScreenState();
+  _PaimentsScreenState createState() => _PaimentsScreenState();
 }
 
-class _LocationsScreenState extends State<LocationsScreen> {
-  final LocationService _locationService = LocationService();
-  List<dynamic> locations = [];
+class _PaimentsScreenState extends State<PaimentsScreen> {
+  final PaiementService _paiementService = PaiementService();
+  List<dynamic> paiements = [];
   String? error;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchLocations();
+    _fetchPaiements();
   }
 
-  Future<void> _fetchLocations() async {
+  Future<void> _fetchPaiements() async {
     setState(() {
       isLoading = true;
     });
     try {
-      final data = await _locationService.getLocations();
+      final data = await _paiementService.getPaiements();
       setState(() {
-        locations = data;
+        paiements = data;
         error = null;
         isLoading = false;
       });
@@ -44,7 +44,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Locations'),
+        title: const Text('Paiements loyers'),
       ),
       body: isLoading
           ? const Center(
@@ -55,41 +55,41 @@ class _LocationsScreenState extends State<LocationsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(MdiIcons.key, size: 80, color: Colors.grey),
+                      Icon(MdiIcons.cash, size: 80, color: Colors.grey),
                       const SizedBox(height: 16),
                       Text('Erreur lors du chargement : $error',
                           style: const TextStyle(color: Colors.red)),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _fetchLocations,
+                        onPressed: _fetchPaiements,
                         child: const Text('Réessayer'),
                       ),
                     ],
                   ),
                 )
-              : locations.isEmpty
+              : paiements.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(MdiIcons.key, size: 80, color: Colors.grey),
+                          Icon(MdiIcons.cash, size: 80, color: Colors.grey),
                           SizedBox(height: 16),
-                          Text('Aucune location trouvée',
+                          Text('Aucun paiement trouvé',
                               style: TextStyle(color: Colors.grey)),
                         ],
                       ),
                     )
                   : ListView.builder(
-                      itemCount: locations.length,
+                      itemCount: paiements.length,
                       itemBuilder: (context, index) {
-                        final location = locations[index];
+                        final paiement = paiements[index];
                         return ListTile(
                           title: Text(
-                              'Location ${location['id']?.toString() ?? 'N/A'}'),
+                              'Paiement ${paiement['id']?.toString() ?? 'N/A'}'),
                           subtitle: Text(
-                              'Client: ${location['nomClient'] ?? 'N/A'} ${location['prenomClient'] ?? 'N/A'}'),
+                              'Montant: ${paiement['montant']?.toString() ?? 'N/A'}'),
                           onTap: () {
-                            print('Clic sur location ${location['id']}');
+                            print('Clic sur paiement ${paiement['id']}');
                           },
                         );
                       },

@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gestion_immo/core/config/constants/routes.dart';
-import 'package:gestion_immo/data/models/services/property_service.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import '../../core/constants/routes.dart';
-import '../../data/services/property_service.dart';
-import '../../data/models/bien_model.dart';
-import '../../shared/themes/app_theme.dart';
+import 'package:gestion_immo/data/services/maison_service.dart';
 
 class PropertiesScreen extends StatefulWidget {
   const PropertiesScreen({super.key});
@@ -15,29 +10,26 @@ class PropertiesScreen extends StatefulWidget {
 }
 
 class _PropertiesScreenState extends State<PropertiesScreen> {
-  final _propertyService = PropertyService();
-  List<BienModel> _properties = [];
-  bool _isLoading = true;
+  final MaisonService _maisonService = MaisonService();
+  List<dynamic> maisons = [];
+  String? error;
 
   @override
   void initState() {
     super.initState();
-    _fetchProperties();
+    _fetchMaisons();
   }
 
-  Future<void> _fetchProperties() async {
+  Future<void> _fetchMaisons() async {
     try {
-      final properties = await _propertyService.fetchProperties();
+      final data = await _maisonService.getMaisons();
       setState(() {
-        _properties = properties;
-        _isLoading = false;
+        maisons = data;
+        error = null;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors du chargement : $e')),
-      );
       setState(() {
-        _isLoading = false;
+        error = e.toString();
       });
     }
   }
@@ -47,57 +39,43 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mes Propriétés'),
-        actions: [
-          IconButton(
-            icon: Icon(MdiIcons.plus),
-            onPressed: () => Navigator.pushNamed(context, Routes.addProperty),
-          ),
-        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _properties.isEmpty
+      body: error != null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(MdiIcons.home, size: 80, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text('Erreur lors du chargement : $error',
+                      style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            )
+          : maisons.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        MdiIcons.home,
-                        size: 80,
-                        color: AppTheme.secondaryTextColor,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Aucune propriété trouvée',
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
+                      Icon(MdiIcons.home, size: 80, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text('Aucune propriété trouvée',
+                          style: TextStyle(color: Colors.grey)),
                     ],
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _properties.length,
+                  itemCount: maisons.length,
                   itemBuilder: (context, index) {
-                    final property = _properties[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: ListTile(
-                        leading: Icon(
-                          MdiIcons.home,
-                          color: AppTheme.primaryColor,
-                        ),
-                        title: Text(property.designation),
-                        subtitle: Text(
-                          '${property.adresse} • ${property.superficie ?? 0} m² • ${property.loyer} FCFA',
-                        ),
-                        trailing: Icon(
-                          MdiIcons.arrowRight,
-                          color: AppTheme.secondaryTextColor,
-                        ),
-                        onTap: () {
-                          // TODO: Naviguer vers les détails du bien
-                        },
-                      ),
+                    final maison = maisons[index];
+                    return ListTile(
+                      title: Text(maison['nom'] ?? 'Propriété sans nom'),
+                      subtitle:
+                          Text(maison['adresse'] ?? 'Adresse non disponible'),
+                      onTap: () {
+                        // Logique pour afficher les détails
+                        print('Clic sur ${maison['nom']}');
+                      },
                     );
                   },
                 ),
