@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:gestion_immo/core/config/app_config.dart';
+import 'package:http_parser/http_parser.dart';
 
 abstract class BaseService {
   final String baseUrl = AppConfig.apiBaseUrl;
@@ -37,7 +38,7 @@ abstract class BaseService {
   }
 
   Future<void> create(Map<String, dynamic> data) async {
-    print('Début de l\'appel POST à /$endpoint/');
+    print('Début de l\'appel POST à /$endpoint/ avec données: $data');
     final url = Uri.parse('$baseUrl/$endpoint/');
     try {
       final response = await http
@@ -53,9 +54,46 @@ abstract class BaseService {
       print(
           'Réponse API (POST $endpoint): ${response.statusCode} - ${response.body}');
       if (response.statusCode != 201)
-        throw Exception('Erreur création: ${response.statusCode}');
+        throw Exception(
+            'Erreur création: ${response.statusCode} - ${response.body}');
     } catch (e) {
       print('Erreur lors de l\'appel POST à /$endpoint/: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> createWithImage(Map<String, dynamic> data,
+      {String? imagePath, required String imageField}) async {
+    print(
+        'Début de l\'appel POST (multipart) à /$endpoint/ avec données: $data et image: $imagePath');
+    final url = Uri.parse('$baseUrl/$endpoint/');
+    try {
+      var request = http.MultipartRequest('POST', url);
+
+      // Ajouter les champs textuels
+      data.forEach((key, value) {
+        request.fields[key] = value.toString();
+      });
+
+      // Ajouter l'image si elle est sélectionnée
+      if (imagePath != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          imageField,
+          imagePath,
+          contentType: MediaType('image', 'jpeg'),
+        ));
+      }
+
+      final response =
+          await request.send().timeout(const Duration(seconds: 10));
+      final responseBody = await response.stream.bytesToString();
+      print(
+          'Réponse API (POST multipart $endpoint): ${response.statusCode} - $responseBody');
+      if (response.statusCode != 201)
+        throw Exception(
+            'Erreur création: ${response.statusCode} - $responseBody');
+    } catch (e) {
+      print('Erreur lors de l\'appel POST multipart à /$endpoint/: $e');
       rethrow;
     }
   }

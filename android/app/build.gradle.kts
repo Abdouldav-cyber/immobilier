@@ -7,6 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.gestion_immo"
+    
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

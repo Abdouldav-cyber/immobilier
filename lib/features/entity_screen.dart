@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:gestion_immo/data/services/base_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 abstract class EntityScreen extends StatefulWidget {
   final String title;
@@ -22,12 +26,23 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
   String? error;
   bool isLoading = true;
   final Map<String, TextEditingController> _controllers = {};
+  final Map<String, dynamic> _dropdownValues = {};
+  String? _imagePath; // Pour stocker le chemin de l'image sélectionnée
+  final ImagePicker _picker = ImagePicker();
+
+  List<dynamic> communes = [];
+  List<dynamic> agences = [];
+  List<dynamic> documents = [];
+  List<dynamic> maisons = [];
+  List<dynamic> locations = [];
+  List<dynamic> commodites = [];
 
   dynamic _editingItem;
 
   @override
   void initState() {
     super.initState();
+    _fetchDependencies();
     _initializeControllers();
     _fetchItems();
   }
@@ -38,30 +53,135 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
     super.dispose();
   }
 
+  Future<void> _fetchDependencies() async {
+    try {
+      if (widget.entityName.toLowerCase() == 'maison' ||
+          widget.entityName.toLowerCase() == 'commodite-maison') {
+        final communeResponse =
+            await http.get(Uri.parse('http://127.0.0.1:8000/communes/'));
+        final agenceResponse =
+            await http.get(Uri.parse('http://127.0.0.1:8000/agences/'));
+        final communeData = jsonDecode(communeResponse.body);
+        final agenceData = jsonDecode(agenceResponse.body);
+        setState(() {
+          communes = communeData is Map && communeData.containsKey('results')
+              ? communeData['results'] as List<dynamic>
+              : communeData as List<dynamic>;
+          agences = agenceData is Map && agenceData.containsKey('results')
+              ? agenceData['results'] as List<dynamic>
+              : agenceData as List<dynamic>;
+        });
+      }
+      if (widget.entityName.toLowerCase() == 'location') {
+        final maisonResponse =
+            await http.get(Uri.parse('http://127.0.0.1:8000/maisons/'));
+        final documentResponse =
+            await http.get(Uri.parse('http://127.0.0.1:8000/documents/'));
+        final maisonData = jsonDecode(maisonResponse.body);
+        final documentData = jsonDecode(documentResponse.body);
+        setState(() {
+          maisons = maisonData is Map && maisonData.containsKey('results')
+              ? maisonData['results'] as List<dynamic>
+              : maisonData as List<dynamic>;
+          documents = documentData is Map && documentData.containsKey('results')
+              ? documentData['results'] as List<dynamic>
+              : documentData as List<dynamic>;
+        });
+      }
+      if (widget.entityName.toLowerCase() == 'paiement' ||
+          widget.entityName.toLowerCase() == 'penalite') {
+        final locationResponse =
+            await http.get(Uri.parse('http://127.0.0.1:8000/locations/'));
+        final locationData = jsonDecode(locationResponse.body);
+        setState(() {
+          locations = locationData is Map && locationData.containsKey('results')
+              ? locationData['results'] as List<dynamic>
+              : locationData as List<dynamic>;
+        });
+      }
+      if (widget.entityName.toLowerCase() == 'commodite-maison') {
+        final commoditeResponse =
+            await http.get(Uri.parse('http://127.0.0.1:8000/commodites/'));
+        final commoditeData = jsonDecode(commoditeResponse.body);
+        setState(() {
+          commodites =
+              commoditeData is Map && commoditeData.containsKey('results')
+                  ? commoditeData['results'] as List<dynamic>
+                  : commoditeData as List<dynamic>;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        error = 'Erreur lors du chargement des dépendances: $e';
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imagePath = pickedFile.path;
+      });
+    }
+  }
+
   void _initializeControllers() {
     switch (widget.entityName.toLowerCase()) {
       case 'maison':
-        _controllers['adresse'] = TextEditingController();
-        _controllers['superficie'] = TextEditingController();
+        _controllers['immat'] = TextEditingController();
+        _controllers['loyer'] = TextEditingController();
+        _controllers['telDemarceur'] = TextEditingController();
+        _controllers['quartier'] = TextEditingController();
+        _controllers['section'] = TextEditingController();
+        _controllers['lot'] = TextEditingController();
+        _controllers['parcelle'] = TextEditingController();
+        _controllers['degLat'] = TextEditingController();
+        _controllers['minLat'] = TextEditingController();
+        _controllers['secLat'] = TextEditingController();
+        _controllers['emisphere'] = TextEditingController();
+        _controllers['degLong'] = TextEditingController();
+        _controllers['minLong'] = TextEditingController();
+        _controllers['secLong'] = TextEditingController();
+        _controllers['fuseau'] = TextEditingController();
+        _controllers['description'] = TextEditingController();
+        _controllers['etat'] = TextEditingController();
+        _dropdownValues['commune'] = null;
+        _dropdownValues['agence'] = null;
         break;
       case 'agence':
         _controllers['nom'] = TextEditingController();
+        _controllers['sigle'] = TextEditingController();
+        _controllers['telephone'] = TextEditingController();
+        _controllers['whatsapp'] = TextEditingController();
+        _controllers['email'] = TextEditingController();
+        _controllers['numeroCompte'] = TextEditingController();
+        _controllers['ifu'] = TextEditingController();
         break;
       case 'location':
-        _controllers['dateDebut'] = TextEditingController();
-        _controllers['dateFin'] = TextEditingController();
+        _controllers['dateEntre'] = TextEditingController();
+        _controllers['dateSortie'] = TextEditingController();
+        _controllers['nomClient'] = TextEditingController();
+        _controllers['prenomClient'] = TextEditingController();
+        _controllers['telephoneClient'] = TextEditingController();
+        _controllers['numeroDocument'] = TextEditingController();
+        _controllers['dateEtabli'] = TextEditingController();
+        _controllers['dateExpi'] = TextEditingController();
+        _dropdownValues['maison'] = null;
+        _dropdownValues['typeDocument'] = null;
         break;
       case 'paiement':
-        _controllers['montant'] = TextEditingController();
         _controllers['datePaiement'] = TextEditingController();
+        _controllers['numeroFacture'] = TextEditingController();
+        _controllers['montant'] = TextEditingController();
+        _dropdownValues['location'] = null;
         break;
       case 'penalite':
         _controllers['montant'] = TextEditingController();
-        _controllers['motif'] = TextEditingController();
+        _dropdownValues['route'] = null;
         break;
       case 'document':
-        _controllers['numeroDocument'] = TextEditingController();
-        _controllers['dateEtabli'] = TextEditingController();
+        _controllers['nom'] = TextEditingController();
         break;
       case 'commune':
         _controllers['nom'] = TextEditingController();
@@ -70,11 +190,13 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
         _controllers['nom'] = TextEditingController();
         break;
       case 'commodite-maison':
-        _controllers['maisonId'] = TextEditingController();
-        _controllers['commoditeId'] = TextEditingController();
+        _controllers['nombre'] = TextEditingController();
+        _dropdownValues['commodite'] = null;
+        _dropdownValues['maison'] = null;
         break;
       case 'photo':
-        _controllers['url'] = TextEditingController();
+        _controllers['libelle'] = TextEditingController();
+        _dropdownValues['maison'] = null;
         break;
     }
   }
@@ -102,9 +224,15 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
       _controllers.forEach((key, controller) {
         controller.text = item[key]?.toString() ?? '';
       });
+      _dropdownValues.forEach((key, value) {
+        _dropdownValues[key] = item[key];
+      });
+      _imagePath = null; // Pas de modification d'image pour l'instant
     } else {
       _editingItem = null;
       _controllers.forEach((_, controller) => controller.clear());
+      _dropdownValues.forEach((key, _) => _dropdownValues[key] = null);
+      _imagePath = null;
     }
 
     showDialog(
@@ -116,21 +244,205 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: _controllers.entries.map((entry) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: TextField(
-                  controller: entry.value,
-                  decoration: InputDecoration(
-                    labelText: entry.key,
-                    border: const OutlineInputBorder(),
-                    errorText: _validateField(entry.key)
-                        ? 'Ce champ est requis'
+            children: [
+              ..._controllers.entries.map((entry) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: TextField(
+                    controller: entry.value,
+                    keyboardType: _getKeyboardType(entry.key),
+                    decoration: InputDecoration(
+                      labelText: entry.key,
+                      border: const OutlineInputBorder(),
+                      errorText: _validateField(entry.key, entry.value.text)
+                          ? 'Champ invalide ou requis'
+                          : null,
+                    ),
+                  ),
+                );
+              }).toList(),
+              if (widget.entityName.toLowerCase() == 'agence' ||
+                  widget.entityName.toLowerCase() == 'photo')
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _pickImage,
+                        child: const Text('Sélectionner une image'),
+                      ),
+                      if (_imagePath != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Image.file(
+                            File(_imagePath!),
+                            height: 100,
+                            width: 100,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      if (widget.entityName.toLowerCase() == 'photo' &&
+                          _imagePath == null &&
+                          _editingItem == null)
+                        const Text(
+                          'Veuillez sélectionner une image',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                    ],
+                  ),
+                ),
+              if (_dropdownValues.containsKey('commune'))
+                DropdownButtonFormField<int>(
+                  value: _dropdownValues['commune'],
+                  decoration: const InputDecoration(
+                    labelText: 'Commune',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: communes.map<DropdownMenuItem<int>>((commune) {
+                    return DropdownMenuItem<int>(
+                      value: commune['id'],
+                      child: Text(commune['nom']),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _dropdownValues['commune'] = value;
+                    });
+                  },
+                  validator: (value) => value == null
+                      ? 'Veuillez sélectionner une commune'
+                      : null,
+                ),
+              if (_dropdownValues.containsKey('agence'))
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: DropdownButtonFormField<int>(
+                    value: _dropdownValues['agence'],
+                    decoration: const InputDecoration(
+                      labelText: 'Agence',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: agences.map<DropdownMenuItem<int>>((agence) {
+                      return DropdownMenuItem<int>(
+                        value: agence['id'],
+                        child: Text(agence['nom']),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _dropdownValues['agence'] = value;
+                      });
+                    },
+                    validator: (value) => value == null
+                        ? 'Veuillez sélectionner une agence'
                         : null,
                   ),
                 ),
-              );
-            }).toList(),
+              if (_dropdownValues.containsKey('maison'))
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: DropdownButtonFormField<int>(
+                    value: _dropdownValues['maison'],
+                    decoration: const InputDecoration(
+                      labelText: 'Maison',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: maisons.map<DropdownMenuItem<int>>((maison) {
+                      return DropdownMenuItem<int>(
+                        value: maison['id'],
+                        child: Text(maison['immat']),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _dropdownValues['maison'] = value;
+                      });
+                    },
+                    validator: (value) => value == null
+                        ? 'Veuillez sélectionner une maison'
+                        : null,
+                  ),
+                ),
+              if (_dropdownValues.containsKey('typeDocument'))
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: DropdownButtonFormField<int>(
+                    value: _dropdownValues['typeDocument'],
+                    decoration: const InputDecoration(
+                      labelText: 'Type de Document',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: documents.map<DropdownMenuItem<int>>((document) {
+                      return DropdownMenuItem<int>(
+                        value: document['id'],
+                        child: Text(document['nom']),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _dropdownValues['typeDocument'] = value;
+                      });
+                    },
+                  ),
+                ),
+              if (_dropdownValues.containsKey('location') ||
+                  _dropdownValues.containsKey('route'))
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: DropdownButtonFormField<int>(
+                    value:
+                        _dropdownValues['location'] ?? _dropdownValues['route'],
+                    decoration: const InputDecoration(
+                      labelText: 'Location',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: locations.map<DropdownMenuItem<int>>((location) {
+                      return DropdownMenuItem<int>(
+                        value: location['id'],
+                        child: Text('Location #${location['id']}'),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        if (_dropdownValues.containsKey('location')) {
+                          _dropdownValues['location'] = value;
+                        } else {
+                          _dropdownValues['route'] = value;
+                        }
+                      });
+                    },
+                    validator: (value) => value == null
+                        ? 'Veuillez sélectionner une location'
+                        : null,
+                  ),
+                ),
+              if (_dropdownValues.containsKey('commodite'))
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: DropdownButtonFormField<int>(
+                    value: _dropdownValues['commodite'],
+                    decoration: const InputDecoration(
+                      labelText: 'Commodité',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: commodites.map<DropdownMenuItem<int>>((commodite) {
+                      return DropdownMenuItem<int>(
+                        value: commodite['id'],
+                        child: Text(commodite['nom']),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _dropdownValues['commodite'] = value;
+                      });
+                    },
+                    validator: (value) => value == null
+                        ? 'Veuillez sélectionner une commodité'
+                        : null,
+                  ),
+                ),
+            ],
           ),
         ),
         actions: [
@@ -140,20 +452,22 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (_controllers.values
-                  .any((controller) => controller.text.isEmpty)) {
-                setState(
-                    () {}); // Rafraîchir pour afficher les erreurs de validation
+              if (_controllers.entries.any(
+                      (entry) => _validateField(entry.key, entry.value.text)) ||
+                  _dropdownValues.values
+                      .any((value) => value == null && _isDropdownRequired()) ||
+                  (widget.entityName.toLowerCase() == 'photo' &&
+                      _imagePath == null &&
+                      _editingItem == null)) {
+                setState(() {});
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                      content: Text(
-                          'Veuillez remplir tous les champs obligatoires')),
+                      content: Text('Veuillez corriger les champs invalides')),
                 );
                 return;
               }
 
-              final data = _controllers
-                  .map((key, controller) => MapEntry(key, controller.text));
+              final data = _formatData();
               if (_editingItem != null) {
                 final confirm = await _showConfirmationDialog(
                   title: 'Confirmer la modification',
@@ -163,7 +477,18 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
               }
               try {
                 if (_editingItem == null) {
-                  await widget.service.create(data);
+                  if (widget.entityName.toLowerCase() == 'agence' ||
+                      widget.entityName.toLowerCase() == 'photo') {
+                    await widget.service.createWithImage(
+                      data,
+                      imagePath: _imagePath,
+                      imageField: widget.entityName.toLowerCase() == 'agence'
+                          ? 'logo'
+                          : 'donnee',
+                    );
+                  } else {
+                    await widget.service.create(data);
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                         content:
@@ -192,8 +517,102 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
     );
   }
 
-  bool _validateField(String field) {
-    return _controllers[field]?.text.isEmpty ?? true;
+  bool _isDropdownRequired() {
+    return widget.entityName.toLowerCase() != 'location' ||
+        _dropdownValues['typeDocument'] != null;
+  }
+
+  Map<String, dynamic> _formatData() {
+    final data = <String, dynamic>{};
+    _controllers.forEach((key, controller) {
+      final value = controller.text;
+      if (value.isEmpty) return;
+      if (key == 'loyer' ||
+          key == 'lot' ||
+          key == 'parcelle' ||
+          key == 'degLat' ||
+          key == 'minLat' ||
+          key == 'degLong' ||
+          key == 'minLong' ||
+          key == 'montant' ||
+          key == 'nombre') {
+        data[key] = int.tryParse(value) ?? 0;
+      } else if (key == 'secLat' || key == 'secLong') {
+        data[key] = double.tryParse(value) ?? 0.0;
+      } else {
+        data[key] = value;
+      }
+    });
+    _dropdownValues.forEach((key, value) {
+      if (value != null) data[key] = value;
+    });
+    return data;
+  }
+
+  TextInputType _getKeyboardType(String field) {
+    if (field == 'loyer' ||
+        field == 'lot' ||
+        field == 'parcelle' ||
+        field == 'degLat' ||
+        field == 'minLat' ||
+        field == 'degLong' ||
+        field == 'minLong' ||
+        field == 'montant' ||
+        field == 'nombre') {
+      return TextInputType.number;
+    }
+    if (field == 'secLat' || field == 'secLong') {
+      return TextInputType.numberWithOptions(decimal: true);
+    }
+    if (field.contains('date')) {
+      return TextInputType.datetime;
+    }
+    if (field == 'telephone' || field == 'telephoneClient') {
+      return TextInputType.phone;
+    }
+    if (field == 'email') {
+      return TextInputType.emailAddress;
+    }
+    return TextInputType.text;
+  }
+
+  bool _validateField(String field, String value) {
+    if (value.isEmpty) {
+      if (field == 'telDemarceur' ||
+          field == 'section' ||
+          field == 'lot' ||
+          field == 'parcelle' ||
+          field == 'description' ||
+          field == 'sigle' ||
+          field == 'whatsapp' ||
+          field == 'email' ||
+          field == 'numeroCompte' ||
+          field == 'ifu' ||
+          field == 'dateSortie' ||
+          field == 'numeroFacture' ||
+          field == 'libelle') {
+        return false;
+      }
+      return true;
+    }
+    if (field == 'loyer' ||
+        field == 'lot' ||
+        field == 'parcelle' ||
+        field == 'degLat' ||
+        field == 'minLat' ||
+        field == 'degLong' ||
+        field == 'minLong' ||
+        field == 'montant' ||
+        field == 'nombre') {
+      return int.tryParse(value) == null;
+    }
+    if (field == 'secLat' || field == 'secLong') {
+      return double.tryParse(value) == null;
+    }
+    if (field == 'emisphere' || field == 'fuseau') {
+      return value.length != 1;
+    }
+    return false;
   }
 
   Future<bool> _showConfirmationDialog(
@@ -390,7 +809,7 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
       case 'photo':
         return Colors.deepPurple;
       default:
-        return Colors.brown;
+        return const Color.fromARGB(255, 234, 96, 78);
     }
   }
 
