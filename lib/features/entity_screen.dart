@@ -124,6 +124,9 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
                   decoration: InputDecoration(
                     labelText: entry.key,
                     border: const OutlineInputBorder(),
+                    errorText: _validateField(entry.key)
+                        ? 'Ce champ est requis'
+                        : null,
                   ),
                 ),
               );
@@ -132,22 +135,54 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler')),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
           ElevatedButton(
             onPressed: () async {
+              if (_controllers.values
+                  .any((controller) => controller.text.isEmpty)) {
+                setState(
+                    () {}); // Rafraîchir pour afficher les erreurs de validation
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text(
+                          'Veuillez remplir tous les champs obligatoires')),
+                );
+                return;
+              }
+
               final data = _controllers
                   .map((key, controller) => MapEntry(key, controller.text));
+              if (_editingItem != null) {
+                final confirm = await _showConfirmationDialog(
+                  title: 'Confirmer la modification',
+                  content: 'Êtes-vous sûr de vouloir modifier cet élément ?',
+                );
+                if (!confirm) return;
+              }
               try {
-                if (_editingItem == null)
+                if (_editingItem == null) {
                   await widget.service.create(data);
-                else
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content:
+                            Text('${widget.entityName} ajouté avec succès')),
+                  );
+                } else {
                   await widget.service.update(_editingItem['id'], data);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content:
+                            Text('${widget.entityName} modifié avec succès')),
+                  );
+                }
                 Navigator.pop(context);
                 _fetchItems();
               } catch (e) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erreur: $e')),
+                );
               }
             },
             child: Text(item == null ? 'Ajouter' : 'Modifier'),
@@ -157,13 +192,86 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
     );
   }
 
+  bool _validateField(String field) {
+    return _controllers[field]?.text.isEmpty ?? true;
+  }
+
+  Future<bool> _showConfirmationDialog(
+      {required String title, required String content}) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(title),
+            content: Text(content),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Confirmer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  void _showDetailsDialog(dynamic item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${widget.entityName} #${item['id']}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: item.entries.map<Widget>((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  '${entry.key}: ${entry.value ?? 'N/A'}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showAddEditDialog(item: item);
+            },
+            child: const Text('Modifier'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _deleteItem(int id) async {
+    final confirm = await _showConfirmationDialog(
+      title: 'Confirmer la suppression',
+      content: 'Êtes-vous sûr de vouloir supprimer cet élément ?',
+    );
+    if (!confirm) return;
+
     try {
       await widget.service.delete(id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${widget.entityName} supprimé avec succès')),
+      );
       _fetchItems();
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Erreur suppression: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur suppression: $e')),
+      );
     }
   }
 
@@ -177,13 +285,15 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
         backgroundColor: _getEntityColor(widget.entityName),
         actions: [
           IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: _fetchItems,
-              tooltip: 'Rafraîchir'),
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _fetchItems,
+            tooltip: 'Rafraîchir',
+          ),
           IconButton(
-              icon: const Icon(Icons.add, color: Colors.white),
-              onPressed: () => _showAddEditDialog(),
-              tooltip: 'Ajouter'),
+            icon: const Icon(Icons.add, color: Colors.white),
+            onPressed: () => _showAddEditDialog(),
+            tooltip: 'Ajouter un ${widget.entityName}',
+          ),
         ],
       ),
       body: Container(
@@ -217,13 +327,15 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
                                 borderRadius: BorderRadius.circular(15)),
                             color: Colors.white.withOpacity(0.9),
                             child: ListTile(
+                              onTap: () => _showDetailsDialog(item),
                               leading: Icon(_getEntityIcon(widget.entityName),
                                   color: _getEntityColor(widget.entityName)),
-                              title: Text('${widget.entityName} #${item['id']}',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          _getEntityColor(widget.entityName))),
+                              title: Text(
+                                '${widget.entityName} #${item['id']}',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: _getEntityColor(widget.entityName)),
+                              ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: _controllers.keys.map((key) {
@@ -235,14 +347,16 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                      icon: const Icon(Icons.edit,
-                                          color: Colors.blue),
-                                      onPressed: () =>
-                                          _showAddEditDialog(item: item)),
+                                    icon: const Icon(Icons.edit,
+                                        color: Colors.blue),
+                                    onPressed: () =>
+                                        _showAddEditDialog(item: item),
+                                  ),
                                   IconButton(
-                                      icon: const Icon(Icons.delete,
-                                          color: Colors.red),
-                                      onPressed: () => _deleteItem(item['id'])),
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.red),
+                                    onPressed: () => _deleteItem(item['id']),
+                                  ),
                                 ],
                               ),
                             ),
