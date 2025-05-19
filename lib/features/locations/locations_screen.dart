@@ -1,99 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:gestion_immo/data/services/location_service.dart';
+import 'package:gestion_immo/features/entity_screen.dart';
 
-class LocationsScreen extends StatefulWidget {
-  const LocationsScreen({super.key});
+class LocationsScreen extends EntityScreen {
+  LocationsScreen({super.key})
+      : super(
+            title: 'Locations',
+            service: LocationService(),
+            entityName: 'location');
 
   @override
-  _LocationsScreenState createState() => _LocationsScreenState();
+  State<LocationsScreen> createState() => _LocationsScreenState();
 }
 
-class _LocationsScreenState extends State<LocationsScreen> {
-  final LocationService _locationService = LocationService();
-  List<dynamic> locations = [];
-  String? error;
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchLocations();
-  }
-
-  Future<void> _fetchLocations() async {
-    setState(() {
-      isLoading = true;
-    });
-    try {
-      final data = await _locationService.getLocations();
-      setState(() {
-        locations = data;
-        error = null;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        error = e.toString();
-        isLoading = false;
-      });
-    }
-  }
-
+class _LocationsScreenState extends EntityScreenState<LocationsScreen> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Locations'),
-      ),
-      body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(MdiIcons.key, size: 80, color: Colors.grey),
-                      const SizedBox(height: 16),
-                      Text('Erreur lors du chargement : $error',
-                          style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _fetchLocations,
-                        child: const Text('Réessayer'),
-                      ),
-                    ],
-                  ),
-                )
-              : locations.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(MdiIcons.key, size: 80, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text('Aucune location trouvée',
-                              style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: locations.length,
-                      itemBuilder: (context, index) {
-                        final location = locations[index];
-                        return ListTile(
-                          title: Text(
-                              'Location ${location['id']?.toString() ?? 'N/A'}'),
-                          subtitle: Text(
-                              'Client: ${location['nomClient'] ?? 'N/A'} ${location['prenomClient'] ?? 'N/A'}'),
-                          onTap: () {
-                            print('Clic sur location ${location['id']}');
-                          },
-                        );
-                      },
-                    ),
-    );
+    return super.build(context); // Délègue la construction à EntityScreenState
   }
 }

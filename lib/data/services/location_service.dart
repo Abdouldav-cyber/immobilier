@@ -1,47 +1,5 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:gestion_immo/core/config/app_config.dart';
+import 'package:gestion_immo/data/services/base_service.dart';
 
-class LocationService {
-  final String baseUrl = AppConfig.apiBaseUrl;
-
-  Future<List<dynamic>> getLocations() async {
-    print('Début de l\'appel à /locations/');
-    final url = Uri.parse('$baseUrl/locations/');
-    try {
-      final response = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 10));
-      print(
-          'Réponse API (locations): ${response.statusCode} - ${response.body}');
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        // Extraire la liste 'results' de la réponse paginée
-        if (data is Map<String, dynamic> && data.containsKey('results')) {
-          return data['results'] as List<dynamic>;
-        } else {
-          throw Exception(
-              'Structure de réponse inattendue : champ "results" manquant');
-        }
-      } else {
-        throw Exception(
-            'Erreur API: ${response.statusCode} - ${response.body}');
-      }
-    } catch (e) {
-      print('Erreur lors de l\'appel à /locations/: $e');
-      if (e.toString().contains('Failed to fetch') ||
-          e.toString().contains('SocketException')) {
-        throw Exception(
-            'Erreur réseau : Impossible de se connecter au serveur à $baseUrl.');
-      } else if (e.toString().contains('TimeoutException')) {
-        throw Exception(
-            'Erreur : Le serveur n\'a pas répondu dans les 10 secondes.');
-      }
-      throw Exception('Erreur lors de l\'appel à /locations/: $e');
-    }
-  }
+class LocationService extends BaseService {
+  LocationService() : super('locations');
 }
