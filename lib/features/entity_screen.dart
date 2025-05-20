@@ -27,7 +27,7 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
   bool isLoading = true;
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, dynamic> _dropdownValues = {};
-  String? _imagePath; // Pour stocker le chemin de l'image sélectionnée
+  String? _imagePath;
   final ImagePicker _picker = ImagePicker();
 
   List<dynamic> communes = [];
@@ -227,7 +227,7 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
       _dropdownValues.forEach((key, value) {
         _dropdownValues[key] = item[key];
       });
-      _imagePath = null; // Pas de modification d'image pour l'instant
+      _imagePath = null;
     } else {
       _editingItem = null;
       _controllers.forEach((_, controller) => controller.clear());
@@ -238,217 +238,453 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(item == null
-            ? 'Ajouter un ${widget.entityName}'
-            : 'Modifier un ${widget.entityName}'),
+        title: Text(
+          item == null
+              ? 'Ajouter un ${widget.entityName}'
+              : 'Modifier un ${widget.entityName}',
+          style:
+              const TextStyle(fontWeight: FontWeight.bold, color: Colors.brown),
+        ),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ..._controllers.entries.map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: TextField(
-                    controller: entry.value,
-                    keyboardType: _getKeyboardType(entry.key),
-                    decoration: InputDecoration(
-                      labelText: entry.key,
-                      border: const OutlineInputBorder(),
-                      errorText: _validateField(entry.key, entry.value.text)
-                          ? 'Champ invalide ou requis'
-                          : null,
-                    ),
-                  ),
-                );
-              }).toList(),
-              if (widget.entityName.toLowerCase() == 'agence' ||
-                  widget.entityName.toLowerCase() == 'photo')
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ElevatedButton(
-                        onPressed: _pickImage,
-                        child: const Text('Sélectionner une image'),
+          child: Card(
+            elevation: 4,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ..._controllers.entries.map((entry) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: entry.value,
+                        builder: (context, value, child) {
+                          final isInvalid =
+                              _validateField(entry.key, value.text);
+                          return TextField(
+                            controller: entry.value,
+                            keyboardType: _getKeyboardType(entry.key),
+                            decoration: InputDecoration(
+                              labelText: entry.key,
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.green),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              errorText: isInvalid &&
+                                      _shouldShowError(entry.key, value.text)
+                                  ? 'Champ invalide ou requis'
+                                  : null,
+                              errorStyle: const TextStyle(color: Colors.grey),
+                              errorBorder: OutlineInputBorder(
+                                borderSide:
+                                    const BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderSide:
+                                    const BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      if (_imagePath != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Image.file(
-                            File(_imagePath!),
-                            height: 100,
-                            width: 100,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      if (widget.entityName.toLowerCase() == 'photo' &&
-                          _imagePath == null &&
-                          _editingItem == null)
-                        const Text(
-                          'Veuillez sélectionner une image',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                    ],
-                  ),
-                ),
-              if (_dropdownValues.containsKey('commune'))
-                DropdownButtonFormField<int>(
-                  value: _dropdownValues['commune'],
-                  decoration: const InputDecoration(
-                    labelText: 'Commune',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: communes.map<DropdownMenuItem<int>>((commune) {
-                    return DropdownMenuItem<int>(
-                      value: commune['id'],
-                      child: Text(commune['nom']),
                     );
                   }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _dropdownValues['commune'] = value;
-                    });
-                  },
-                  validator: (value) => value == null
-                      ? 'Veuillez sélectionner une commune'
-                      : null,
-                ),
-              if (_dropdownValues.containsKey('agence'))
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: DropdownButtonFormField<int>(
-                    value: _dropdownValues['agence'],
-                    decoration: const InputDecoration(
-                      labelText: 'Agence',
-                      border: OutlineInputBorder(),
+                  if (widget.entityName.toLowerCase() == 'agence' ||
+                      widget.entityName.toLowerCase() == 'photo')
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ElevatedButton(
+                            onPressed: _pickImage,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.brown,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: const Text('Sélectionner une image'),
+                          ),
+                          if (_imagePath != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Image.file(
+                                File(_imagePath!),
+                                height: 100,
+                                width: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          if (widget.entityName.toLowerCase() == 'photo' &&
+                              _imagePath == null &&
+                              _editingItem == null)
+                            const Text(
+                              'Veuillez sélectionner une image',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                        ],
+                      ),
                     ),
-                    items: agences.map<DropdownMenuItem<int>>((agence) {
-                      return DropdownMenuItem<int>(
-                        value: agence['id'],
-                        child: Text(agence['nom']),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _dropdownValues['agence'] = value;
-                      });
-                    },
-                    validator: (value) => value == null
-                        ? 'Veuillez sélectionner une agence'
-                        : null,
-                  ),
-                ),
-              if (_dropdownValues.containsKey('maison'))
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: DropdownButtonFormField<int>(
-                    value: _dropdownValues['maison'],
-                    decoration: const InputDecoration(
-                      labelText: 'Maison',
-                      border: OutlineInputBorder(),
+                  if (_dropdownValues.containsKey('commune'))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ValueListenableBuilder<int?>(
+                        valueListenable:
+                            ValueNotifier(_dropdownValues['commune']),
+                        builder: (context, value, child) {
+                          final isInvalid =
+                              value == null && _isDropdownRequired();
+                          return DropdownButtonFormField<int>(
+                            value: value,
+                            decoration: InputDecoration(
+                              labelText: 'Commune',
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.green),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              errorText: isInvalid &&
+                                      _shouldShowError(
+                                          'commune', value?.toString() ?? '')
+                                  ? 'Champ requis'
+                                  : null,
+                              errorStyle: const TextStyle(color: Colors.grey),
+                              errorBorder: OutlineInputBorder(
+                                borderSide:
+                                    const BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            items:
+                                communes.map<DropdownMenuItem<int>>((commune) {
+                              return DropdownMenuItem<int>(
+                                value: commune['id'],
+                                child: Text(commune['nom']),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _dropdownValues['commune'] = value;
+                              });
+                            },
+                          );
+                        },
+                      ),
                     ),
-                    items: maisons.map<DropdownMenuItem<int>>((maison) {
-                      return DropdownMenuItem<int>(
-                        value: maison['id'],
-                        child: Text(maison['immat']),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _dropdownValues['maison'] = value;
-                      });
-                    },
-                    validator: (value) => value == null
-                        ? 'Veuillez sélectionner une maison'
-                        : null,
-                  ),
-                ),
-              if (_dropdownValues.containsKey('typeDocument'))
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: DropdownButtonFormField<int>(
-                    value: _dropdownValues['typeDocument'],
-                    decoration: const InputDecoration(
-                      labelText: 'Type de Document',
-                      border: OutlineInputBorder(),
+                  if (_dropdownValues.containsKey('agence'))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ValueListenableBuilder<int?>(
+                        valueListenable:
+                            ValueNotifier(_dropdownValues['agence']),
+                        builder: (context, value, child) {
+                          final isInvalid =
+                              value == null && _isDropdownRequired();
+                          return DropdownButtonFormField<int>(
+                            value: value,
+                            decoration: InputDecoration(
+                              labelText: 'Agence',
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.green),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              errorText: isInvalid &&
+                                      _shouldShowError(
+                                          'agence', value?.toString() ?? '')
+                                  ? 'Champ requis'
+                                  : null,
+                              errorStyle: const TextStyle(color: Colors.grey),
+                              errorBorder: OutlineInputBorder(
+                                borderSide:
+                                    const BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            items: agences.map<DropdownMenuItem<int>>((agence) {
+                              return DropdownMenuItem<int>(
+                                value: agence['id'],
+                                child: Text(agence['nom']),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _dropdownValues['agence'] = value;
+                              });
+                            },
+                          );
+                        },
+                      ),
                     ),
-                    items: documents.map<DropdownMenuItem<int>>((document) {
-                      return DropdownMenuItem<int>(
-                        value: document['id'],
-                        child: Text(document['nom']),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _dropdownValues['typeDocument'] = value;
-                      });
-                    },
-                  ),
-                ),
-              if (_dropdownValues.containsKey('location') ||
-                  _dropdownValues.containsKey('route'))
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: DropdownButtonFormField<int>(
-                    value:
-                        _dropdownValues['location'] ?? _dropdownValues['route'],
-                    decoration: const InputDecoration(
-                      labelText: 'Location',
-                      border: OutlineInputBorder(),
+                  if (_dropdownValues.containsKey('maison'))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ValueListenableBuilder<int?>(
+                        valueListenable:
+                            ValueNotifier(_dropdownValues['maison']),
+                        builder: (context, value, child) {
+                          final isInvalid =
+                              value == null && _isDropdownRequired();
+                          return DropdownButtonFormField<int>(
+                            value: value,
+                            decoration: InputDecoration(
+                              labelText: 'Maison',
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.green),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              errorText: isInvalid &&
+                                      _shouldShowError(
+                                          'maison', value?.toString() ?? '')
+                                  ? 'Champ requis'
+                                  : null,
+                              errorStyle: const TextStyle(color: Colors.grey),
+                              errorBorder: OutlineInputBorder(
+                                borderSide:
+                                    const BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            items: maisons.map<DropdownMenuItem<int>>((maison) {
+                              return DropdownMenuItem<int>(
+                                value: maison['id'],
+                                child: Text(maison['immat']),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _dropdownValues['maison'] = value;
+                              });
+                            },
+                          );
+                        },
+                      ),
                     ),
-                    items: locations.map<DropdownMenuItem<int>>((location) {
-                      return DropdownMenuItem<int>(
-                        value: location['id'],
-                        child: Text('Location #${location['id']}'),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        if (_dropdownValues.containsKey('location')) {
-                          _dropdownValues['location'] = value;
-                        } else {
-                          _dropdownValues['route'] = value;
-                        }
-                      });
-                    },
-                    validator: (value) => value == null
-                        ? 'Veuillez sélectionner une location'
-                        : null,
-                  ),
-                ),
-              if (_dropdownValues.containsKey('commodite'))
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: DropdownButtonFormField<int>(
-                    value: _dropdownValues['commodite'],
-                    decoration: const InputDecoration(
-                      labelText: 'Commodité',
-                      border: OutlineInputBorder(),
+                  if (_dropdownValues.containsKey('typeDocument'))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ValueListenableBuilder<int?>(
+                        valueListenable:
+                            ValueNotifier(_dropdownValues['typeDocument']),
+                        builder: (context, value, child) {
+                          final isInvalid =
+                              value == null && _isDropdownRequired();
+                          return DropdownButtonFormField<int>(
+                            value: value,
+                            decoration: InputDecoration(
+                              labelText: 'Type de Document',
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.green),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              errorText: isInvalid &&
+                                      _shouldShowError('typeDocument',
+                                          value?.toString() ?? '')
+                                  ? 'Champ requis'
+                                  : null,
+                              errorStyle: const TextStyle(color: Colors.grey),
+                              errorBorder: OutlineInputBorder(
+                                borderSide:
+                                    const BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            items: documents
+                                .map<DropdownMenuItem<int>>((document) {
+                              return DropdownMenuItem<int>(
+                                value: document['id'],
+                                child: Text(document['nom']),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _dropdownValues['typeDocument'] = value;
+                              });
+                            },
+                          );
+                        },
+                      ),
                     ),
-                    items: commodites.map<DropdownMenuItem<int>>((commodite) {
-                      return DropdownMenuItem<int>(
-                        value: commodite['id'],
-                        child: Text(commodite['nom']),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _dropdownValues['commodite'] = value;
-                      });
-                    },
-                    validator: (value) => value == null
-                        ? 'Veuillez sélectionner une commodité'
-                        : null,
-                  ),
-                ),
-            ],
+                  if (_dropdownValues.containsKey('location') ||
+                      _dropdownValues.containsKey('route'))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ValueListenableBuilder<int?>(
+                        valueListenable: ValueNotifier(
+                            _dropdownValues['location'] ??
+                                _dropdownValues['route']),
+                        builder: (context, value, child) {
+                          final isInvalid =
+                              (value == null) && _isDropdownRequired();
+                          return DropdownButtonFormField<int>(
+                            value: value,
+                            decoration: InputDecoration(
+                              labelText: 'Location',
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.green),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              errorText: isInvalid &&
+                                      _shouldShowError(
+                                          'location', value?.toString() ?? '')
+                                  ? 'Champ requis'
+                                  : null,
+                              errorStyle: const TextStyle(color: Colors.grey),
+                              errorBorder: OutlineInputBorder(
+                                borderSide:
+                                    const BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            items: locations
+                                .map<DropdownMenuItem<int>>((location) {
+                              return DropdownMenuItem<int>(
+                                value: location['id'],
+                                child: Text('Location #${location['id']}'),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                if (_dropdownValues.containsKey('location')) {
+                                  _dropdownValues['location'] = value;
+                                } else {
+                                  _dropdownValues['route'] = value;
+                                }
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  if (_dropdownValues.containsKey('commodite'))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ValueListenableBuilder<int?>(
+                        valueListenable:
+                            ValueNotifier(_dropdownValues['commodite']),
+                        builder: (context, value, child) {
+                          final isInvalid =
+                              value == null && _isDropdownRequired();
+                          return DropdownButtonFormField<int>(
+                            value: value,
+                            decoration: InputDecoration(
+                              labelText: 'Commodité',
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.green),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                    color:
+                                        isInvalid ? Colors.grey : Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              errorText: isInvalid &&
+                                      _shouldShowError(
+                                          'commodite', value?.toString() ?? '')
+                                  ? 'Champ requis'
+                                  : null,
+                              errorStyle: const TextStyle(color: Colors.grey),
+                              errorBorder: OutlineInputBorder(
+                                borderSide:
+                                    const BorderSide(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            items: commodites
+                                .map<DropdownMenuItem<int>>((commodite) {
+                              return DropdownMenuItem<int>(
+                                value: commodite['id'],
+                                child: Text(commodite['nom']),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _dropdownValues['commodite'] = value;
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: const Text('Annuler', style: TextStyle(color: Colors.brown)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -510,6 +746,12 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
                 );
               }
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.brown,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             child: Text(item == null ? 'Ajouter' : 'Modifier'),
           ),
         ],
@@ -615,20 +857,47 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
     return false;
   }
 
+  bool _shouldShowError(String field, String value) {
+    // Afficher l'erreur uniquement si le champ est requis/invalide et que l'utilisateur tente de soumettre
+    return _validateField(field, value) && _isFieldRequired(field);
+  }
+
+  bool _isFieldRequired(String field) {
+    // Définir quels champs sont requis (à adapter selon vos besoins)
+    final requiredFields = {
+      'maison': ['immat', 'loyer', 'commune', 'agence'],
+      'agence': ['nom', 'telephone'],
+      'location': ['dateEntre', 'maison'],
+      'paiement': ['datePaiement', 'montant', 'location'],
+      'penalite': ['montant'],
+      'document': ['nom'],
+      'commune': ['nom'],
+      'commodite': ['nom'],
+      'commodite-maison': ['nombre', 'commodite', 'maison'],
+      'photo': ['libelle', 'maison'],
+    };
+    return requiredFields[widget.entityName.toLowerCase()]?.contains(field) ??
+        false;
+  }
+
   Future<bool> _showConfirmationDialog(
       {required String title, required String content}) async {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text(title),
+            title: Text(title, style: const TextStyle(color: Colors.brown)),
             content: Text(content),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Annuler'),
+                child: const Text('Annuler',
+                    style: TextStyle(color: Colors.brown)),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.brown,
+                    foregroundColor: Colors.white),
                 child: const Text('Confirmer'),
               ),
             ],
@@ -641,32 +910,45 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${widget.entityName} #${item['id']}'),
+        title: Text('${widget.entityName} #${item['id']}',
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, color: Colors.brown)),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: item.entries.map<Widget>((entry) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  '${entry.key}: ${entry.value ?? 'N/A'}',
-                  style: const TextStyle(fontSize: 16),
-                ),
-              );
-            }).toList(),
+          child: Card(
+            elevation: 4,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: item.entries.map<Widget>((entry) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      '${entry.key}: ${entry.value ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
+            child: const Text('Fermer', style: TextStyle(color: Colors.brown)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               _showAddEditDialog(item: item);
             },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.brown, foregroundColor: Colors.white),
             child: const Text('Modifier'),
           ),
         ],
@@ -698,20 +980,17 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text(
+          widget.title,
+          style:
+              const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         backgroundColor: _getEntityColor(widget.entityName),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _fetchItems,
             tooltip: 'Rafraîchir',
-          ),
-          IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () => _showAddEditDialog(),
-            tooltip: 'Ajouter un ${widget.entityName}',
           ),
         ],
       ),
@@ -729,7 +1008,7 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
             : error != null
                 ? Center(
                     child: Text('Erreur: $error',
-                        style: const TextStyle(color: Colors.red)))
+                        style: const TextStyle(color: Colors.grey)))
                 : items.isEmpty
                     ? Center(
                         child: Text('Aucun ${widget.entityName} trouvé',
@@ -783,6 +1062,13 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
                         },
                       ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddEditDialog(),
+        backgroundColor: Colors.brown,
+        tooltip: 'Ajouter un ${widget.entityName}',
+        child: Icon(MdiIcons.plusCircle, color: Colors.white, size: 30),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -809,7 +1095,7 @@ class EntityScreenState<T extends EntityScreen> extends State<T> {
       case 'photo':
         return Colors.deepPurple;
       default:
-        return const Color.fromARGB(255, 234, 96, 78);
+        return Colors.brown;
     }
   }
 

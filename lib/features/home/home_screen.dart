@@ -148,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Bienvenue',
+                          const Text('Bienvenue dans votre application',
                               style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
