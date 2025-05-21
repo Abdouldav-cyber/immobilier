@@ -11,13 +11,19 @@ import 'package:gestion_immo/features/communes/communes_screen.dart';
 import 'package:gestion_immo/features/commodites/commodites_screen.dart';
 import 'package:gestion_immo/features/commodite_maisons/commodite_maisons_screen.dart';
 import 'package:gestion_immo/features/photos/photos_screen.dart';
+import 'package:gestion_immo/features/auth/login_screen.dart';
+import 'package:gestion_immo/data/services/auth_service.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  bool isAuthenticated = await AuthService().isAuthenticated();
+  runApp(MyApp(initialRoute: isAuthenticated ? Routes.home : Routes.login));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+
+  const MyApp({super.key, this.initialRoute = Routes.home});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +32,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.brown,
       ),
-      initialRoute: Routes.home,
+      initialRoute: initialRoute,
       routes: {
         Routes.home: (context) => HomeScreen(),
         Routes.maisons: (context) => MaisonsScreen(),
@@ -39,6 +45,7 @@ class MyApp extends StatelessWidget {
         Routes.commodites: (context) => CommoditesScreen(),
         Routes.commoditeMaisons: (context) => CommoditeMaisonsScreen(),
         Routes.photos: (context) => PhotosScreen(),
+        Routes.login: (context) => LoginScreen(),
       },
     );
   }
