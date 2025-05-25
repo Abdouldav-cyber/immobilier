@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:gestion_immo/core/config/constants/routes.dart';
+import 'package:gestion_immo/data/services/auth_service.dart';
 import 'package:gestion_immo/features/agences/agences_screen.dart';
 import 'package:gestion_immo/features/commodite_maisons/commodite_maisons_screen.dart';
 import 'package:gestion_immo/features/commodites/commodites_screen.dart';
@@ -11,6 +12,7 @@ import 'package:gestion_immo/features/paiements/paiements_screen.dart';
 import 'package:gestion_immo/features/penalites/penalites_screen.dart';
 import 'package:gestion_immo/features/photos/photos_screen.dart';
 import 'package:gestion_immo/features/maisons/maisons_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,9 +23,34 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isSidebarOpen = false;
+  String? _username;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _username = prefs.getString('username') ?? 'Utilisateur';
+    });
+  }
 
   void _toggleSidebar() {
     setState(() => _isSidebarOpen = !_isSidebarOpen);
+  }
+
+  Future<void> _logout() async {
+    try {
+      await AuthService().logout();
+      Navigator.pushReplacementNamed(context, Routes.login);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de la déconnexion: $e')),
+      );
+    }
   }
 
   @override
@@ -39,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Row(
           children: [
+            // Sidebar animée
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               width: _isSidebarOpen ? 250 : 70,
@@ -48,9 +76,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      offset: const Offset(2, 0)),
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: const Offset(2, 0),
+                  ),
                 ],
               ),
               child: Column(
@@ -58,11 +87,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 20),
                   ListTile(
                     leading: Icon(
-                        _isSidebarOpen ? MdiIcons.close : MdiIcons.menu,
-                        color: Colors.white),
+                      _isSidebarOpen ? MdiIcons.close : MdiIcons.menu,
+                      color: Colors.white,
+                    ),
                     title: _isSidebarOpen
-                        ? const Text('Menu',
-                            style: TextStyle(color: Colors.white))
+                        ? const Text(
+                            'Menu',
+                            style: TextStyle(color: Colors.white),
+                          )
                         : null,
                     onTap: _toggleSidebar,
                   ),
@@ -70,54 +102,80 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ListView(
                       children: [
                         _buildSidebarItem(
-                            Icons.home, 'Accueil', () => setState(() {}), true),
-                        _buildSidebarItem(Icons.view_agenda, 'Maisons',
-                            () => Navigator.pushNamed(context, Routes.maisons)),
-                        _buildSidebarItem(Icons.business, 'Agences',
-                            () => Navigator.pushNamed(context, Routes.agences)),
+                          Icons.home,
+                          'Accueil',
+                          () => setState(() {}),
+                          true,
+                        ),
                         _buildSidebarItem(
-                            Icons.location_on,
-                            'Locations',
-                            () =>
-                                Navigator.pushNamed(context, Routes.locations)),
+                          Icons.view_agenda,
+                          'Maisons',
+                          () => Navigator.pushNamed(context, Routes.maisons),
+                        ),
                         _buildSidebarItem(
-                            Icons.payment,
-                            'Paiements',
-                            () =>
-                                Navigator.pushNamed(context, Routes.paiements)),
+                          Icons.business,
+                          'Agences',
+                          () => Navigator.pushNamed(context, Routes.agences),
+                        ),
                         _buildSidebarItem(
-                            Icons.warning,
-                            'Pénalités',
-                            () =>
-                                Navigator.pushNamed(context, Routes.penalites)),
+                          Icons.location_on,
+                          'Locations',
+                          () => Navigator.pushNamed(context, Routes.locations),
+                        ),
                         _buildSidebarItem(
-                            Icons.description,
-                            'Documents',
-                            () =>
-                                Navigator.pushNamed(context, Routes.documents)),
+                          Icons.payment,
+                          'Paiements',
+                          () => Navigator.pushNamed(context, Routes.paiements),
+                        ),
                         _buildSidebarItem(
-                            Icons.location_city,
-                            'Communes',
-                            () =>
-                                Navigator.pushNamed(context, Routes.communes)),
+                          Icons.warning,
+                          'Pénalités',
+                          () => Navigator.pushNamed(context, Routes.penalites),
+                        ),
                         _buildSidebarItem(
-                            Icons.lightbulb,
-                            'Commodités',
-                            () => Navigator.pushNamed(
-                                context, Routes.commodites)),
+                          Icons.description,
+                          'Documents',
+                          () => Navigator.pushNamed(context, Routes.documents),
+                        ),
                         _buildSidebarItem(
-                            Icons.house,
-                            'Commodités Maisons',
-                            () => Navigator.pushNamed(
-                                context, Routes.commoditeMaisons)),
-                        _buildSidebarItem(Icons.photo, 'Photos',
-                            () => Navigator.pushNamed(context, Routes.photos)),
+                          Icons.location_city,
+                          'Communes',
+                          () => Navigator.pushNamed(context, Routes.communes),
+                        ),
+                        _buildSidebarItem(
+                          Icons.lightbulb,
+                          'Commodités',
+                          () => Navigator.pushNamed(context, Routes.commodites),
+                        ),
+                        _buildSidebarItem(
+                          Icons.house,
+                          'Commodités Maisons',
+                          () => Navigator.pushNamed(
+                              context, Routes.commoditeMaisons),
+                        ),
+                        _buildSidebarItem(
+                          Icons.photo,
+                          'Photos',
+                          () => Navigator.pushNamed(context, Routes.photos),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.logout, color: Colors.grey[300]),
+                          title: _isSidebarOpen
+                              ? Text(
+                                  'Déconnexion',
+                                  style: TextStyle(color: Colors.grey[300]),
+                                )
+                              : null,
+                          onTap: _logout,
+                          hoverColor: Colors.brown[500],
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
+            // Contenu principal
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -126,20 +184,40 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [
-                        Colors.brown[600]!,
-                        Colors.brown[800]!
-                      ])),
-                      child: const Row(
+                        gradient: LinearGradient(
+                          colors: [Colors.brown[600]!, Colors.brown[800]!],
+                        ),
+                      ),
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Gestion Immo',
-                              style: TextStyle(
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Gestion Immo',
+                                style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white)),
-                          Icon(Icons.notifications,
-                              color: Colors.white, size: 28),
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                'Bienvenue, $_username',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.notifications,
+                                color: Colors.white, size: 28),
+                            onPressed: () {
+                              // Ajoutez la logique pour les notifications ici
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -148,14 +226,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Bienvenue dans votre application',
-                              style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF3E2723))),
-                          const Text('Gérez vos entités avec facilité.',
-                              style: TextStyle(
-                                  fontSize: 16, color: Color(0xFF6D4C41))),
+                          // const Text(
+                          //   'Bienvenue dans votre application',
+                          //   style: TextStyle(
+                          //     fontSize: 22,
+                          //     fontWeight: FontWeight.bold,
+                          //     color: Color(0xFF3E2723),
+                          //   ),
+                          // ),
+                          // const Text(
+                          //   'Gérez vos entités avec facilité.',
+                          //   style: TextStyle(
+                          //     fontSize: 16,
+                          //     color: Color(0xFF6D4C41),
+                          //   ),
+                          // ),
                           const SizedBox(height: 20),
                           GridView.count(
                             crossAxisCount:
@@ -209,9 +294,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return ListTile(
       leading: Icon(icon, color: isSelected ? Colors.white : Colors.grey[300]),
       title: _isSidebarOpen
-          ? Text(title,
+          ? Text(
+              title,
               style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey[300]))
+                  color: isSelected ? Colors.white : Colors.grey[300]),
+            )
           : null,
       onTap: onTap,
       tileColor: isSelected ? Colors.brown[600] : null,
@@ -233,9 +320,11 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Icon(icon, size: 40, color: color),
               const SizedBox(height: 10),
-              Text(title,
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+              Text(
+                title,
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold, color: color),
+              ),
             ],
           ),
         ),

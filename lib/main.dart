@@ -1,40 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_immo/core/config/constants/routes.dart';
-import 'package:gestion_immo/features/home/home_screen.dart';
-import 'package:gestion_immo/features/maisons/maisons_screen.dart';
+import 'package:gestion_immo/data/services/auth_service.dart';
 import 'package:gestion_immo/features/agences/agences_screen.dart';
-import 'package:gestion_immo/features/locations/locations_screen.dart';
-import 'package:gestion_immo/features/paiements/paiements_screen.dart';
-import 'package:gestion_immo/features/penalites/penalites_screen.dart';
-import 'package:gestion_immo/features/documents/documents_screen.dart';
+import 'package:gestion_immo/features/commodite_maisons/commodite_maisons_screen.dart';
 import 'package:gestion_immo/features/communes/communes_screen.dart';
 import 'package:gestion_immo/features/commodites/commodites_screen.dart';
-import 'package:gestion_immo/features/commodite_maisons/commodite_maisons_screen.dart';
+import 'package:gestion_immo/features/documents/documents_screen.dart';
+import 'package:gestion_immo/features/home/home_screen.dart';
+import 'package:gestion_immo/features/locations/locations_screen.dart';
+import 'package:gestion_immo/features/maisons/maisons_screen.dart';
+import 'package:gestion_immo/features/paiements/paiements_screen.dart';
+import 'package:gestion_immo/features/penalites/penalites_screen.dart';
 import 'package:gestion_immo/features/photos/photos_screen.dart';
 import 'package:gestion_immo/features/auth/login_screen.dart';
-import 'package:gestion_immo/data/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   bool isAuthenticated = await AuthService().isAuthenticated();
-  runApp(MyApp(initialRoute: isAuthenticated ? Routes.home : Routes.login));
+  runApp(MyApp(
+    initialRoute: isAuthenticated ? Routes.home : Routes.login,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final String initialRoute;
 
-  const MyApp({super.key, this.initialRoute = Routes.home});
+  const MyApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Gestion Immo',
+      title: 'ImmoGest',
       theme: ThemeData(
-        primarySwatch: Colors.brown,
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       initialRoute: initialRoute,
       routes: {
-        Routes.home: (context) => HomeScreen(),
+        Routes.home: (context) => const HomeScreen(),
         Routes.maisons: (context) => MaisonsScreen(),
         Routes.agences: (context) => AgencesScreen(),
         Routes.locations: (context) => LocationsScreen(),
