@@ -152,4 +152,9 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('access_token');
   }
+
+  // Ajout de la méthode getToken pour aligner avec BaseService
+  Future<String?> getToken() async {
+    return await getAccessToken(); // Utilise getAccessToken existante
+  }
 }

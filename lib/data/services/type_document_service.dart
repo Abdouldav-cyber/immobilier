@@ -1,8 +1,23 @@
 import 'package:gestion_immo/data/services/base_service.dart';
 
 class TypeDocumentService extends BaseService {
-  TypeDocumentService() : super('type-documents'); // Endpoint correct
+  TypeDocumentService() : super('type_documents');
 
-  // Méthodes héritées de BaseService (getAll, create, update, delete) sont utilisées.
-  // Si un modèle TypeDocument est ajouté, il peut être intégré ici pour un typage plus fort.
+  @override
+  Future<dynamic> create(dynamic item) async {
+    final sanitizedItem = {
+      'nom': item['nom'],
+      'description': item['description'] ?? '',
+    };
+    return super.create(sanitizedItem);
+  }
+
+  @override
+  Future<dynamic> update(dynamic id, dynamic item) async {
+    final sanitizedItem = {
+      'nom': item['nom'],
+      'description': item['description'] ?? '',
+    };
+    return super.update(id, sanitizedItem);
+  }
 }

@@ -7,7 +7,7 @@ class CommuneService extends BaseService {
   Future<dynamic> create(dynamic item) async {
     final sanitizedItem = {
       'nom': item['nom'],
-      'sup': item['sup'] ?? false,
+      'code_postal': item['code_postal'] ?? '',
     };
     return super.create(sanitizedItem);
   }
@@ -16,7 +16,7 @@ class CommuneService extends BaseService {
   Future<dynamic> update(dynamic id, dynamic item) async {
     final sanitizedItem = {
       'nom': item['nom'],
-      'sup': item['sup'] ?? false,
+      'code_postal': item['code_postal'] ?? '',
     };
     return super.update(id, sanitizedItem);
   }
