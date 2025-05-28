@@ -1,19 +1,21 @@
+// TODO Implement this library.
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:gestion_immo/core/config/constants/routes.dart';
 import 'package:gestion_immo/data/services/auth_service.dart';
-import 'package:gestion_immo/data/services/maison_service.dart';
+import 'package:gestion_immo/data/services/agence_service.dart';
+import 'dart:convert';
 
-class MaisonsScreen extends StatefulWidget {
-  const MaisonsScreen({super.key});
+class AgenceScreen extends StatefulWidget {
+  const AgenceScreen({super.key});
 
   @override
-  State<MaisonsScreen> createState() => _MaisonsScreenState();
+  State<AgenceScreen> createState() => _AgenceScreenState();
 }
 
-class _MaisonsScreenState extends State<MaisonsScreen> {
+class _AgenceScreenState extends State<AgenceScreen> {
   bool _isSidebarOpen = false;
-  final MaisonService _service = MaisonService();
+  final AgenceService _service = AgenceService();
   List<Map<String, dynamic>> _items = [];
   bool _isLoading = true;
 
@@ -57,8 +59,13 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
 
   void _showAddDialog() {
     final TextEditingController nomController = TextEditingController();
-    final TextEditingController adresseController = TextEditingController();
-    final TextEditingController prixController = TextEditingController();
+    final TextEditingController immatriculationController =
+        TextEditingController();
+    final TextEditingController villeController = TextEditingController();
+    final TextEditingController quartierController = TextEditingController();
+    final TextEditingController lienGoogleMapsController =
+        TextEditingController();
+    final TextEditingController logoController = TextEditingController();
 
     showDialog(
       context: context,
@@ -87,7 +94,7 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Ajouter une Maison',
+                      'Ajouter une Agence',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -104,8 +111,8 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                 TextField(
                   controller: nomController,
                   decoration: InputDecoration(
-                    labelText: 'Nom de la Maison',
-                    prefixIcon: const Icon(Icons.home, color: Colors.brown),
+                    labelText: 'Nom de l\'Agence',
+                    prefixIcon: const Icon(Icons.business, color: Colors.brown),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(color: Colors.brown),
@@ -121,11 +128,11 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: adresseController,
+                  controller: immatriculationController,
                   decoration: InputDecoration(
-                    labelText: 'Adresse',
+                    labelText: 'Immatriculation',
                     prefixIcon:
-                        const Icon(Icons.location_on, color: Colors.brown),
+                        const Icon(Icons.fingerprint, color: Colors.brown),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(color: Colors.brown),
@@ -141,12 +148,68 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: prixController,
-                  keyboardType: TextInputType.number,
+                  controller: villeController,
                   decoration: InputDecoration(
-                    labelText: 'Prix',
+                    labelText: 'Ville',
                     prefixIcon:
-                        const Icon(Icons.attach_money, color: Colors.brown),
+                        const Icon(Icons.location_city, color: Colors.brown),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.brown),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Colors.brown, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: Colors.brown[50],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: quartierController,
+                  decoration: InputDecoration(
+                    labelText: 'Quartier',
+                    prefixIcon: const Icon(Icons.map, color: Colors.brown),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.brown),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Colors.brown, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: Colors.brown[50],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: lienGoogleMapsController,
+                  decoration: InputDecoration(
+                    labelText: 'Lien Google Maps',
+                    prefixIcon: const Icon(Icons.link, color: Colors.brown),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.brown),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Colors.brown, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: Colors.brown[50],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: logoController,
+                  decoration: InputDecoration(
+                    labelText: 'URL du Logo',
+                    prefixIcon: const Icon(Icons.image, color: Colors.brown),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(color: Colors.brown),
@@ -175,8 +238,11 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                     ElevatedButton(
                       onPressed: () async {
                         if (nomController.text.isEmpty ||
-                            adresseController.text.isEmpty ||
-                            prixController.text.isEmpty) {
+                            immatriculationController.text.isEmpty ||
+                            villeController.text.isEmpty ||
+                            quartierController.text.isEmpty ||
+                            lienGoogleMapsController.text.isEmpty ||
+                            logoController.text.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Tous les champs sont requis'),
@@ -188,8 +254,11 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                         try {
                           await _service.create({
                             'nom': nomController.text,
-                            'adresse': adresseController.text,
-                            'prix': double.parse(prixController.text),
+                            'immatriculation': immatriculationController.text,
+                            'ville': villeController.text,
+                            'quartier': quartierController.text,
+                            'lien_google_maps': lienGoogleMapsController.text,
+                            'logo': logoController.text,
                             'sup': false,
                           });
                           Navigator.pop(context);
@@ -293,13 +362,13 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                       _buildSidebarItem(
                         Icons.view_agenda,
                         'Maisons',
-                        () => setState(() {}),
-                        true,
+                        () => Navigator.pushNamed(context, Routes.maisons),
                       ),
                       _buildSidebarItem(
                         Icons.business,
                         'Agences',
-                        () => Navigator.pushNamed(context, Routes.agences),
+                        () => setState(() {}),
+                        true,
                       ),
                       _buildSidebarItem(
                         Icons.location_on,
@@ -393,7 +462,7 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Maisons',
+                            'Agences Immobilières',
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -419,13 +488,13 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                                   children: [
                                     const SizedBox(height: 50),
                                     Icon(
-                                      Icons.home_outlined,
+                                      Icons.business_outlined,
                                       size: 80,
                                       color: Colors.grey[400],
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      'Aucune maison pour le moment',
+                                      'Aucune agence pour le moment',
                                       style: TextStyle(
                                         fontSize: 18,
                                         color: Colors.grey[600],
@@ -456,7 +525,7 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                                       leading: CircleAvatar(
                                         backgroundColor: Colors.brown[100],
                                         child: const Icon(
-                                          Icons.home,
+                                          Icons.business,
                                           color: Colors.brown,
                                         ),
                                       ),
@@ -475,14 +544,14 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'Adresse: ${item['adresse']}',
+                                              'Immatriculation: ${item['immatriculation']}',
                                               style: TextStyle(
                                                 color: Colors.grey[600],
                                                 fontSize: 14,
                                               ),
                                             ),
                                             Text(
-                                              'Prix: ${item['prix']}',
+                                              'Ville: ${item['ville']}, Quartier: ${item['quartier']}',
                                               style: TextStyle(
                                                 color: Colors.grey[600],
                                                 fontSize: 14,
@@ -532,7 +601,7 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                         onPressed: _showAddDialog,
                         icon: const Icon(Icons.add, size: 20),
                         label: const Text(
-                          'Ajouter une Maison',
+                          'Ajouter une Agence',
                           style: TextStyle(fontSize: 16),
                         ),
                         style: ElevatedButton.styleFrom(

@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:gestion_immo/core/config/constants/routes.dart';
 import 'package:gestion_immo/data/services/auth_service.dart';
-import 'package:gestion_immo/data/services/maison_service.dart';
+import 'package:gestion_immo/data/services/type_document_service.dart';
+import 'dart:convert';
 
-class MaisonsScreen extends StatefulWidget {
-  const MaisonsScreen({super.key});
+class TypeDocumentsScreen extends StatefulWidget {
+  const TypeDocumentsScreen({super.key});
 
   @override
-  State<MaisonsScreen> createState() => _MaisonsScreenState();
+  State<TypeDocumentsScreen> createState() => _TypeDocumentsScreenState();
 }
 
-class _MaisonsScreenState extends State<MaisonsScreen> {
+class _TypeDocumentsScreenState extends State<TypeDocumentsScreen> {
   bool _isSidebarOpen = false;
-  final MaisonService _service = MaisonService();
+  final TypeDocumentService _service = TypeDocumentService();
   List<Map<String, dynamic>> _items = [];
   bool _isLoading = true;
 
@@ -57,9 +58,6 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
 
   void _showAddDialog() {
     final TextEditingController nomController = TextEditingController();
-    final TextEditingController adresseController = TextEditingController();
-    final TextEditingController prixController = TextEditingController();
-
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -78,147 +76,98 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
               ),
             ],
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Ajouter une Maison',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.brown,
-                      ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Ajouter un Type de Document',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.brown,
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.grey),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: nomController,
-                  decoration: InputDecoration(
-                    labelText: 'Nom de la Maison',
-                    prefixIcon: const Icon(Icons.home, color: Colors.brown),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.brown),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: Colors.brown, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: Colors.brown[50],
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: adresseController,
-                  decoration: InputDecoration(
-                    labelText: 'Adresse',
-                    prefixIcon:
-                        const Icon(Icons.location_on, color: Colors.brown),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.brown),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: Colors.brown, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: Colors.brown[50],
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: prixController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Prix',
-                    prefixIcon:
-                        const Icon(Icons.attach_money, color: Colors.brown),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.brown),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: Colors.brown, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: Colors.brown[50],
+                ],
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nomController,
+                decoration: InputDecoration(
+                  labelText: 'Nom',
+                  prefixIcon:
+                      const Icon(Icons.description, color: Colors.brown),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.brown),
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.brown, width: 2),
+                  ),
+                  filled: true,
+                  fillColor: Colors.brown[50],
                 ),
-                const SizedBox(height: 30),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Annuler',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Annuler',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (nomController.text.isEmpty ||
-                            adresseController.text.isEmpty ||
-                            prixController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Tous les champs sont requis'),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
-                          return;
-                        }
-                        try {
-                          await _service.create({
-                            'nom': nomController.text,
-                            'adresse': adresseController.text,
-                            'prix': double.parse(prixController.text),
-                            'sup': false,
-                          });
-                          Navigator.pop(context);
-                          _loadData();
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Erreur lors de l\'ajout: $e'),
-                              backgroundColor: Colors.redAccent,
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.brown,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 5,
-                      ),
-                      child:
-                          const Text('Ajouter', style: TextStyle(fontSize: 16)),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (nomController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Le nom est requis'),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                        return;
+                      }
+                      try {
+                        await _service
+                            .create({'nom': nomController.text, 'sup': false});
+                        Navigator.pop(context);
+                        _loadData();
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Erreur lors de l\'ajout: $e'),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.brown,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      elevation: 5,
                     ),
-                  ],
-                ),
-              ],
-            ),
+                    child:
+                        const Text('Ajouter', style: TextStyle(fontSize: 16)),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -293,8 +242,7 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                       _buildSidebarItem(
                         Icons.view_agenda,
                         'Maisons',
-                        () => setState(() {}),
-                        true,
+                        () => Navigator.pushNamed(context, Routes.maisons),
                       ),
                       _buildSidebarItem(
                         Icons.business,
@@ -319,8 +267,8 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                       _buildSidebarItem(
                         Icons.description,
                         'Types de Documents',
-                        () =>
-                            Navigator.pushNamed(context, Routes.type_documents),
+                        () => setState(() {}),
+                        true,
                       ),
                       _buildSidebarItem(
                         Icons.location_city,
@@ -393,7 +341,7 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Maisons',
+                            'Types de Documents',
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -419,13 +367,13 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                                   children: [
                                     const SizedBox(height: 50),
                                     Icon(
-                                      Icons.home_outlined,
+                                      Icons.description_outlined,
                                       size: 80,
                                       color: Colors.grey[400],
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      'Aucune maison pour le moment',
+                                      'Aucun enregistrement pour le moment',
                                       style: TextStyle(
                                         fontSize: 18,
                                         color: Colors.grey[600],
@@ -456,7 +404,7 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                                       leading: CircleAvatar(
                                         backgroundColor: Colors.brown[100],
                                         child: const Icon(
-                                          Icons.home,
+                                          Icons.description,
                                           color: Colors.brown,
                                         ),
                                       ),
@@ -470,34 +418,14 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                                       ),
                                       subtitle: Padding(
                                         padding: const EdgeInsets.only(top: 5),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Adresse: ${item['adresse']}',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Prix: ${item['prix']}',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Supprimé: ${item['sup'] ? 'Oui' : 'Non'}',
-                                              style: TextStyle(
-                                                color: item['sup']
-                                                    ? Colors.redAccent
-                                                    : Colors.green,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                          ],
+                                        child: Text(
+                                          'Supprimé: ${item['sup'] ? 'Oui' : 'Non'}',
+                                          style: TextStyle(
+                                            color: item['sup']
+                                                ? Colors.redAccent
+                                                : Colors.green,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                       ),
                                       trailing: Row(
@@ -532,7 +460,7 @@ class _MaisonsScreenState extends State<MaisonsScreen> {
                         onPressed: _showAddDialog,
                         icon: const Icon(Icons.add, size: 20),
                         label: const Text(
-                          'Ajouter une Maison',
+                          'Ajouter un Type de Document',
                           style: TextStyle(fontSize: 16),
                         ),
                         style: ElevatedButton.styleFrom(
