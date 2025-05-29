@@ -44,13 +44,15 @@ abstract class BaseService {
 
   // Récupère tous les éléments
   Future<List<dynamic>> getAll() async {
-    print('Début de l\'appel GET à /$endpoint/');
+    print('Début de l\'appel GET à $baseUrl/$endpoint/');
     final url = Uri.parse('$baseUrl/$endpoint/');
     try {
+      final headers = await _getHeaders();
+      print('En-têtes de la requête: $headers');
       final response = await http
           .get(
             url,
-            headers: await _getHeaders(),
+            headers: headers,
           )
           .timeout(const Duration(seconds: 10));
       print(
@@ -74,20 +76,22 @@ abstract class BaseService {
       }
       throw Exception('Erreur API: ${response.statusCode} - ${response.body}');
     } catch (e) {
-      print('Erreur lors de l\'appel GET à /$endpoint/: $e');
+      print('Erreur lors de l\'appel GET à $baseUrl/$endpoint/: $e');
       rethrow;
     }
   }
 
   // Récupère un élément par ID
   Future<dynamic> getById(int id) async {
-    print('Début de l\'appel GET à /$endpoint/$id/');
+    print('Début de l\'appel GET à $baseUrl/$endpoint/$id/');
     final url = Uri.parse('$baseUrl/$endpoint/$id/');
     try {
+      final headers = await _getHeaders();
+      print('En-têtes de la requête: $headers');
       final response = await http
           .get(
             url,
-            headers: await _getHeaders(),
+            headers: headers,
           )
           .timeout(const Duration(seconds: 10));
       print(
@@ -100,21 +104,25 @@ abstract class BaseService {
       }
       throw Exception('Erreur API: ${response.statusCode} - ${response.body}');
     } catch (e) {
-      print('Erreur lors de l\'appel GET à /$endpoint/$id/: $e');
+      print('Erreur lors de l\'appel GET à $baseUrl/$endpoint/$id/: $e');
       rethrow;
     }
   }
 
   // Crée un nouvel élément et retourne les données créées
   Future<dynamic> create(Map<String, dynamic> data) async {
-    print('Début de l\'appel POST à /$endpoint/ avec données: $data');
+    print('Début de l\'appel POST à $baseUrl/$endpoint/ avec données: $data');
     final url = Uri.parse('$baseUrl/$endpoint/');
     try {
+      final headers = await _getHeaders();
+      print('En-têtes de la requête: $headers');
+      final sanitizedData = _sanitizeData(data);
+      print('Données nettoyées avant envoi: $sanitizedData');
       final response = await http
           .post(
             url,
-            headers: await _getHeaders(),
-            body: jsonEncode(data),
+            headers: headers,
+            body: jsonEncode(sanitizedData),
           )
           .timeout(const Duration(seconds: 10));
       print(
@@ -128,7 +136,7 @@ abstract class BaseService {
       throw Exception(
           'Erreur création: ${response.statusCode} - ${response.body}');
     } catch (e) {
-      print('Erreur lors de l\'appel POST à /$endpoint/: $e');
+      print('Erreur lors de l\'appel POST à $baseUrl/$endpoint/: $e');
       rethrow;
     }
   }
@@ -137,14 +145,21 @@ abstract class BaseService {
   Future<dynamic> createWithImage(Map<String, dynamic> data,
       {String? imagePath, required String imageField}) async {
     print(
-        'Début de l\'appel POST (multipart) à /$endpoint/ avec données: $data et image: $imagePath');
+        'Début de l\'appel POST (multipart) à $baseUrl/$endpoint/ avec données: $data et image: $imagePath');
     final url = Uri.parse('$baseUrl/$endpoint/');
     try {
       var request = http.MultipartRequest('POST', url);
-      request.headers.addAll(await _getHeaders());
+      final headers = await _getHeaders();
+      // Les en-têtes Content-Type et Accept ne sont pas nécessaires pour multipart
+      headers.remove('Content-Type');
+      headers.remove('Accept');
+      request.headers.addAll(headers);
+      print('En-têtes de la requête: ${request.headers}');
 
       // Ajouter les champs textuels
-      data.forEach((key, value) {
+      final sanitizedData = _sanitizeData(data);
+      print('Données nettoyées avant envoi: $sanitizedData');
+      sanitizedData.forEach((key, value) {
         request.fields[key] = value.toString();
       });
 
@@ -171,21 +186,26 @@ abstract class BaseService {
       throw Exception(
           'Erreur création: ${response.statusCode} - $responseBody');
     } catch (e) {
-      print('Erreur lors de l\'appel POST multipart à /$endpoint/: $e');
+      print('Erreur lors de l\'appel POST multipart à $baseUrl/$endpoint/: $e');
       rethrow;
     }
   }
 
   // Met à jour un élément existant et retourne les données mises à jour
   Future<dynamic> update(int id, Map<String, dynamic> data) async {
-    print('Début de l\'appel PUT à /$endpoint/$id/');
+    print(
+        'Début de l\'appel PUT à $baseUrl/$endpoint/$id/ avec données: $data');
     final url = Uri.parse('$baseUrl/$endpoint/$id/');
     try {
+      final headers = await _getHeaders();
+      print('En-têtes de la requête: $headers');
+      final sanitizedData = _sanitizeData(data);
+      print('Données nettoyées avant envoi: $sanitizedData');
       final response = await http
           .put(
             url,
-            headers: await _getHeaders(),
-            body: jsonEncode(data),
+            headers: headers,
+            body: jsonEncode(sanitizedData),
           )
           .timeout(const Duration(seconds: 10));
       print(
@@ -199,7 +219,7 @@ abstract class BaseService {
       throw Exception(
           'Erreur modification: ${response.statusCode} - ${response.body}');
     } catch (e) {
-      print('Erreur lors de l\'appel PUT à /$endpoint/$id/: $e');
+      print('Erreur lors de l\'appel PUT à $baseUrl/$endpoint/$id/: $e');
       rethrow;
     }
   }
@@ -207,14 +227,20 @@ abstract class BaseService {
   // Met à jour le statut d'un élément (par exemple, pour fermer une location)
   Future<dynamic> updateStatus(
       int id, String statusField, dynamic statusValue) async {
-    print('Début de l\'appel PUT pour mise à jour du statut à /$endpoint/$id/');
+    print(
+        'Début de l\'appel PUT pour mise à jour du statut à $baseUrl/$endpoint/$id/');
     final url = Uri.parse('$baseUrl/$endpoint/$id/');
     try {
+      final headers = await _getHeaders();
+      print('En-têtes de la requête: $headers');
+      final data = {statusField: statusValue};
+      final sanitizedData = _sanitizeData(data);
+      print('Données nettoyées avant envoi: $sanitizedData');
       final response = await http
           .put(
             url,
-            headers: await _getHeaders(),
-            body: jsonEncode({statusField: statusValue}),
+            headers: headers,
+            body: jsonEncode(sanitizedData),
           )
           .timeout(const Duration(seconds: 10));
       print(
@@ -229,20 +255,22 @@ abstract class BaseService {
           'Erreur mise à jour statut: ${response.statusCode} - ${response.body}');
     } catch (e) {
       print(
-          'Erreur lors de l\'appel PUT pour mise à jour statut à /$endpoint/$id/: $e');
+          'Erreur lors de l\'appel PUT pour mise à jour statut à $baseUrl/$endpoint/$id/: $e');
       rethrow;
     }
   }
 
   // Supprime un élément
   Future<void> delete(int id) async {
-    print('Début de l\'appel DELETE à /$endpoint/$id/');
+    print('Début de l\'appel DELETE à $baseUrl/$endpoint/$id/');
     final url = Uri.parse('$baseUrl/$endpoint/$id/');
     try {
+      final headers = await _getHeaders();
+      print('En-têtes de la requête: $headers');
       final response = await http
           .delete(
             url,
-            headers: await _getHeaders(),
+            headers: headers,
           )
           .timeout(const Duration(seconds: 10));
       print(
@@ -255,8 +283,10 @@ abstract class BaseService {
       throw Exception(
           'Erreur suppression: ${response.statusCode} - ${response.body}');
     } catch (e) {
-      print('Erreur lors de l\'appel DELETE à /$endpoint/$id/: $e');
+      print('Erreur lors de l\'appel DELETE à $baseUrl/$endpoint/$id/: $e');
       rethrow;
     }
   }
+
+  getOptions(endpoint) {}
 }

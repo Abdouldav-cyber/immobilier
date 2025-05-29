@@ -1,4 +1,3 @@
-// TODO Implement this library.
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:gestion_immo/core/config/constants/routes.dart';
@@ -101,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Icons.description,
                           'Types de Documents',
                           () => Navigator.pushNamed(
-                              context, Routes.type_documents)),
+                              context, Routes.type_documents)), // Unique
                       _buildSidebarItem(Icons.location_city, 'Communes',
                           () => Navigator.pushNamed(context, Routes.communes)),
                       _buildSidebarItem(

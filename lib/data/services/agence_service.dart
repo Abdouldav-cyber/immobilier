@@ -6,11 +6,11 @@ class AgenceService extends BaseService {
   @override
   Future<dynamic> create(dynamic item) async {
     final sanitizedItem = {
-      'nom': item['nom'],
-      'adresse': item['adresse'],
-      'email': item['email'],
-      'telephone': item['telephone'],
-      'sup': item['sup'] ?? false,
+      'logo': item['logo'],
+      'ville': item['ville'],
+      'quartier': item['quartier'],
+      'google_maps_link': item['google_maps_link'],
+      'immatriculation': item['immatriculation'],
     };
     return super.create(sanitizedItem);
   }
@@ -18,11 +18,11 @@ class AgenceService extends BaseService {
   @override
   Future<dynamic> update(dynamic id, dynamic item) async {
     final sanitizedItem = {
-      'nom': item['nom'],
-      'adresse': item['adresse'],
-      'email': item['email'],
-      'telephone': item['telephone'],
-      'sup': item['sup'] ?? false,
+      'logo': item['logo'],
+      'ville': item['ville'],
+      'quartier': item['quartier'],
+      'google_maps_link': item['google_maps_link'],
+      'immatriculation': item['immatriculation'],
     };
     return super.update(id, sanitizedItem);
   }

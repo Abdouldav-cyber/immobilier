@@ -10,28 +10,60 @@ class LocationsScreen extends EntityScreen {
           service: LocationService(),
           fields: [
             {
+              'name': 'date',
+              'label': 'Date',
+              'type': 'text',
+              'icon': Icons.calendar_today
+            },
+            {
+              'name': 'type_de_document',
+              'label': 'Type de Document',
+              'type': 'dropdown',
+              'icon': Icons.description,
+              'options_endpoint': 'type_documents'
+            },
+            {
+              'name': 'numero',
+              'label': 'Numéro',
+              'type': 'text',
+              'icon': Icons.numbers
+            },
+            {
+              'name': 'date_etablissement',
+              'label': 'Date d\'Établissement',
+              'type': 'text',
+              'icon': Icons.date_range
+            },
+            {
+              'name': 'date_expiration',
+              'label': 'Date d\'Expiration',
+              'type': 'text',
+              'icon': Icons.event
+            },
+            {
               'name': 'nom',
               'label': 'Nom',
               'type': 'text',
-              'icon': Icons.person,
+              'icon': Icons.person
             },
             {
-              'name': 'dateDebut',
-              'label': 'Date de début',
+              'name': 'prenom',
+              'label': 'Prénom',
               'type': 'text',
-              'icon': Icons.date_range,
+              'icon': Icons.person_outline
             },
             {
-              'name': 'dateFin',
-              'label': 'Date de fin',
+              'name': 'client',
+              'label': 'Client',
               'type': 'text',
-              'icon': Icons.date_range,
+              'icon': Icons.account_circle
             },
             {
-              'name': 'status',
-              'label': 'Statut',
-              'type': 'text',
-              'icon': Icons.info,
+              'name': 'maison_id',
+              'label': 'Maison',
+              'type': 'dropdown',
+              'icon': Icons.home,
+              'options_endpoint': 'maisons'
             },
           ],
           icon: Icons.location_on,
