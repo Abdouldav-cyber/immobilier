@@ -5,7 +5,7 @@ import 'package:gestion_immo/data/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key}); // Constructeur constant explicite
+  const HomeScreen({super.key});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -97,22 +97,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       _buildSidebarItem(Icons.warning, 'Pénalités',
                           () => Navigator.pushNamed(context, Routes.penalites)),
                       _buildSidebarItem(
-                          Icons.description,
-                          'Types de Documents',
-                          () => Navigator.pushNamed(
-                              context, Routes.type_documents)), // Unique
-                      _buildSidebarItem(Icons.location_city, 'Communes',
-                          () => Navigator.pushNamed(context, Routes.communes)),
-                      _buildSidebarItem(
-                          Icons.lightbulb,
-                          'Commodités',
+                          Icons.settings,
+                          'Paramètres',
                           () =>
-                              Navigator.pushNamed(context, Routes.commodites)),
-                      _buildSidebarItem(
-                          Icons.house,
-                          'Commodités Maisons',
-                          () => Navigator.pushNamed(
-                              context, Routes.commoditeMaisons)),
+                              Navigator.pushNamed(context, Routes.parametres)),
                       _buildSidebarItem(Icons.photo, 'Photos',
                           () => Navigator.pushNamed(context, Routes.photos)),
                       MouseRegion(
@@ -219,20 +207,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Routes.paiements, Colors.teal),
                               _buildFeatureCard(Icons.warning, 'Pénalités',
                                   Routes.penalites, Colors.red),
-                              _buildFeatureCard(
-                                  Icons.description,
-                                  'Types de Documents',
-                                  Routes.type_documents,
-                                  Colors.indigo),
-                              _buildFeatureCard(Icons.location_city, 'Communes',
-                                  Routes.communes, Colors.purple),
-                              _buildFeatureCard(Icons.lightbulb, 'Commodités',
-                                  Routes.commodites, Colors.blue),
-                              _buildFeatureCard(
-                                  Icons.house,
-                                  'Commodités Maisons',
-                                  Routes.commoditeMaisons,
-                                  Colors.cyan),
+                              _buildFeatureCard(Icons.settings, 'Paramètres',
+                                  Routes.parametres, Colors.blueGrey),
                               _buildFeatureCard(Icons.photo, 'Photos',
                                   Routes.photos, Colors.deepPurple),
                             ],

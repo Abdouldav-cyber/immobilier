@@ -10,23 +10,26 @@ abstract class BaseService {
 
   BaseService(this.endpoint);
 
-  // Récupère le token d'authentification depuis AuthService
-  Future<Map<String, String>> _getHeaders() async {
-    String? token = await AuthService().getToken();
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
+  /// Récupère les en-têtes avec le token d'authentification.
+  Future<Map<String, String>> _getHeaders({bool isMultipart = false}) async {
+    String? token = await AuthService().getAccessToken();
+    final headers = <String, String>{};
+    if (!isMultipart) {
+      headers['Content-Type'] = 'application/json';
+      headers['Accept'] = 'application/json';
+    }
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
   }
 
-  // Convertit les champs problématiques (comme IdentityMap) en chaînes
+  /// Convertit les champs problématiques en chaînes.
   dynamic _sanitizeData(dynamic data) {
     if (data is Map<String, dynamic>) {
       return data.map((key, value) {
         if (value is Map &&
             value.runtimeType.toString().contains('IdentityMap')) {
-          // Convertit IdentityMap en String (prend la première valeur si possible)
           return MapEntry(key, value.toString());
         } else if (value is Map<String, dynamic>) {
           return MapEntry(key, _sanitizeData(value));
@@ -42,106 +45,60 @@ abstract class BaseService {
     return data;
   }
 
-  // Récupère tous les éléments
+  /// Récupère tous les éléments avec gestion du rafraîchissement du token.
   Future<List<dynamic>> getAll() async {
     print('Début de l\'appel GET à $baseUrl/$endpoint/');
     final url = Uri.parse('$baseUrl/$endpoint/');
     try {
-      final headers = await _getHeaders();
-      print('En-têtes de la requête: $headers');
-      final response = await http
-          .get(
-            url,
-            headers: headers,
-          )
-          .timeout(const Duration(seconds: 10));
-      print(
-          'Réponse API (GET $endpoint): ${response.statusCode} - ${response.body}');
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        print('Données décodées: $data');
-        final sanitizedData = _sanitizeData(data);
-        print('Données nettoyées: $sanitizedData');
-        if (sanitizedData is Map<String, dynamic> &&
-            sanitizedData.containsKey('results')) {
-          return sanitizedData['results'] is List
-              ? sanitizedData['results'] as List<dynamic>
-              : [];
-        }
-        if (sanitizedData is List<dynamic>) return sanitizedData;
-        print('Structure de réponse inattendue, retour d\'une liste vide');
-        return [];
-      } else if (response.statusCode == 401) {
-        throw Exception('Non autorisé : token invalide ou expiré');
+      final response = await _performGetRequest(url);
+      print('Données décodées: ${response.body}');
+      final data = jsonDecode(response.body);
+      final sanitizedData = _sanitizeData(data);
+      print('Données nettoyées: $sanitizedData');
+      if (sanitizedData is Map<String, dynamic> &&
+          sanitizedData.containsKey('results')) {
+        return sanitizedData['results'] is List
+            ? sanitizedData['results'] as List<dynamic>
+            : [];
       }
-      throw Exception('Erreur API: ${response.statusCode} - ${response.body}');
+      if (sanitizedData is List<dynamic>) return sanitizedData;
+      print('Structure de réponse inattendue, retour d\'une liste vide');
+      return [];
     } catch (e) {
       print('Erreur lors de l\'appel GET à $baseUrl/$endpoint/: $e');
       rethrow;
     }
   }
 
-  // Récupère un élément par ID
+  /// Récupère un élément par ID avec gestion du rafraîchissement du token.
   Future<dynamic> getById(int id) async {
     print('Début de l\'appel GET à $baseUrl/$endpoint/$id/');
     final url = Uri.parse('$baseUrl/$endpoint/$id/');
     try {
-      final headers = await _getHeaders();
-      print('En-têtes de la requête: $headers');
-      final response = await http
-          .get(
-            url,
-            headers: headers,
-          )
-          .timeout(const Duration(seconds: 10));
-      print(
-          'Réponse API (GET $endpoint/$id): ${response.statusCode} - ${response.body}');
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return _sanitizeData(data);
-      } else if (response.statusCode == 401) {
-        throw Exception('Non autorisé : token invalide ou expiré');
-      }
-      throw Exception('Erreur API: ${response.statusCode} - ${response.body}');
+      final response = await _performGetRequest(url);
+      final data = jsonDecode(response.body);
+      return _sanitizeData(data);
     } catch (e) {
       print('Erreur lors de l\'appel GET à $baseUrl/$endpoint/$id/: $e');
       rethrow;
     }
   }
 
-  // Crée un nouvel élément et retourne les données créées
+  /// Crée un nouvel élément et retourne les données créées.
   Future<dynamic> create(Map<String, dynamic> data) async {
     print('Début de l\'appel POST à $baseUrl/$endpoint/ avec données: $data');
     final url = Uri.parse('$baseUrl/$endpoint/');
     try {
-      final headers = await _getHeaders();
-      print('En-têtes de la requête: $headers');
-      final sanitizedData = _sanitizeData(data);
-      print('Données nettoyées avant envoi: $sanitizedData');
-      final response = await http
-          .post(
-            url,
-            headers: headers,
-            body: jsonEncode(sanitizedData),
-          )
-          .timeout(const Duration(seconds: 10));
-      print(
-          'Réponse API (POST $endpoint): ${response.statusCode} - ${response.body}');
-      if (response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        return _sanitizeData(data);
-      } else if (response.statusCode == 401) {
-        throw Exception('Non autorisé : token invalide ou expiré');
-      }
-      throw Exception(
-          'Erreur création: ${response.statusCode} - ${response.body}');
+      final response = await _performPostRequest(url, data);
+      final createdData = jsonDecode(response.body);
+      return _sanitizeData(createdData);
     } catch (e) {
       print('Erreur lors de l\'appel POST à $baseUrl/$endpoint/: $e');
       rethrow;
     }
   }
 
-  // Crée un nouvel élément avec une image et retourne les données créées
+  /// Crée un nouvel élément avec une image et retourne les données créées.
   Future<dynamic> createWithImage(Map<String, dynamic> data,
       {String? imagePath, required String imageField}) async {
     print(
@@ -149,10 +106,7 @@ abstract class BaseService {
     final url = Uri.parse('$baseUrl/$endpoint/');
     try {
       var request = http.MultipartRequest('POST', url);
-      final headers = await _getHeaders();
-      // Les en-têtes Content-Type et Accept ne sont pas nécessaires pour multipart
-      headers.remove('Content-Type');
-      headers.remove('Accept');
+      final headers = await _getHeaders(isMultipart: true);
       request.headers.addAll(headers);
       print('En-têtes de la requête: ${request.headers}');
 
@@ -191,68 +145,32 @@ abstract class BaseService {
     }
   }
 
-  // Met à jour un élément existant et retourne les données mises à jour
+  /// Met à jour un élément existant et retourne les données mises à jour.
   Future<dynamic> update(int id, Map<String, dynamic> data) async {
     print(
         'Début de l\'appel PUT à $baseUrl/$endpoint/$id/ avec données: $data');
     final url = Uri.parse('$baseUrl/$endpoint/$id/');
     try {
-      final headers = await _getHeaders();
-      print('En-têtes de la requête: $headers');
-      final sanitizedData = _sanitizeData(data);
-      print('Données nettoyées avant envoi: $sanitizedData');
-      final response = await http
-          .put(
-            url,
-            headers: headers,
-            body: jsonEncode(sanitizedData),
-          )
-          .timeout(const Duration(seconds: 10));
-      print(
-          'Réponse API (PUT $endpoint): ${response.statusCode} - ${response.body}');
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return _sanitizeData(data);
-      } else if (response.statusCode == 401) {
-        throw Exception('Non autorisé : token invalide ou expiré');
-      }
-      throw Exception(
-          'Erreur modification: ${response.statusCode} - ${response.body}');
+      final response = await _performPutRequest(url, data);
+      final updatedData = jsonDecode(response.body);
+      return _sanitizeData(updatedData);
     } catch (e) {
       print('Erreur lors de l\'appel PUT à $baseUrl/$endpoint/$id/: $e');
       rethrow;
     }
   }
 
-  // Met à jour le statut d'un élément (par exemple, pour fermer une location)
+  /// Met à jour le statut d'un élément (par exemple, pour fermer une location).
   Future<dynamic> updateStatus(
       int id, String statusField, dynamic statusValue) async {
     print(
         'Début de l\'appel PUT pour mise à jour du statut à $baseUrl/$endpoint/$id/');
     final url = Uri.parse('$baseUrl/$endpoint/$id/');
+    final data = {statusField: statusValue};
     try {
-      final headers = await _getHeaders();
-      print('En-têtes de la requête: $headers');
-      final data = {statusField: statusValue};
-      final sanitizedData = _sanitizeData(data);
-      print('Données nettoyées avant envoi: $sanitizedData');
-      final response = await http
-          .put(
-            url,
-            headers: headers,
-            body: jsonEncode(sanitizedData),
-          )
-          .timeout(const Duration(seconds: 10));
-      print(
-          'Réponse API (PUT $endpoint status): ${response.statusCode} - ${response.body}');
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return _sanitizeData(data);
-      } else if (response.statusCode == 401) {
-        throw Exception('Non autorisé : token invalide ou expiré');
-      }
-      throw Exception(
-          'Erreur mise à jour statut: ${response.statusCode} - ${response.body}');
+      final response = await _performPutRequest(url, data);
+      final updatedData = jsonDecode(response.body);
+      return _sanitizeData(updatedData);
     } catch (e) {
       print(
           'Erreur lors de l\'appel PUT pour mise à jour statut à $baseUrl/$endpoint/$id/: $e');
@@ -260,33 +178,170 @@ abstract class BaseService {
     }
   }
 
-  // Supprime un élément
+  /// Supprime un élément.
   Future<void> delete(int id) async {
     print('Début de l\'appel DELETE à $baseUrl/$endpoint/$id/');
     final url = Uri.parse('$baseUrl/$endpoint/$id/');
     try {
-      final headers = await _getHeaders();
-      print('En-têtes de la requête: $headers');
-      final response = await http
-          .delete(
-            url,
-            headers: headers,
-          )
-          .timeout(const Duration(seconds: 10));
-      print(
-          'Réponse API (DELETE $endpoint): ${response.statusCode} - ${response.body}');
-      if (response.statusCode == 204) {
-        return;
-      } else if (response.statusCode == 401) {
-        throw Exception('Non autorisé : token invalide ou expiré');
+      final response = await _performDeleteRequest(url);
+      if (response.statusCode != 204) {
+        throw Exception(
+            'Erreur suppression: ${response.statusCode} - ${response.body}');
       }
-      throw Exception(
-          'Erreur suppression: ${response.statusCode} - ${response.body}');
     } catch (e) {
       print('Erreur lors de l\'appel DELETE à $baseUrl/$endpoint/$id/: $e');
       rethrow;
     }
   }
 
-  getOptions(endpoint) {}
+  /// Effectue une requête GET avec gestion du rafraîchissement du token.
+  Future<http.Response> _performGetRequest(Uri url) async {
+    final headers = await _getHeaders();
+    print('En-têtes de la requête: $headers');
+    final response = await http
+        .get(url, headers: headers)
+        .timeout(const Duration(seconds: 10));
+    print('Réponse API (GET $url): ${response.statusCode} - ${response.body}');
+    if (response.statusCode == 401) {
+      print('Token invalide ou expiré, tentative de rafraîchissement...');
+      final newToken = await AuthService().refreshToken();
+      if (newToken != null) {
+        headers['Authorization'] = 'Bearer $newToken';
+        print('Nouvel en-tête avec token rafraîchi: $headers');
+        final retryResponse = await http
+            .get(url, headers: headers)
+            .timeout(const Duration(seconds: 10));
+        print(
+            'Réponse API après rafraîchissement (GET $url): ${retryResponse.statusCode} - ${retryResponse.body}');
+        if (retryResponse.statusCode == 200) {
+          return retryResponse;
+        }
+        throw Exception(
+            'Erreur après rafraîchissement: ${retryResponse.statusCode} - ${retryResponse.body}');
+      }
+      throw Exception('Non autorisé : impossible de rafraîchir le token');
+    } else if (response.statusCode != 200) {
+      throw Exception('Erreur API: ${response.statusCode} - ${response.body}');
+    }
+    return response;
+  }
+
+  /// Effectue une requête POST avec gestion du rafraîchissement du token.
+  Future<http.Response> _performPostRequest(
+      Uri url, Map<String, dynamic> data) async {
+    final headers = await _getHeaders();
+    print('En-têtes de la requête: $headers');
+    final sanitizedData = _sanitizeData(data);
+    print('Données nettoyées avant envoi: $sanitizedData');
+    final response = await http
+        .post(
+          url,
+          headers: headers,
+          body: jsonEncode(sanitizedData),
+        )
+        .timeout(const Duration(seconds: 10));
+    print('Réponse API (POST $url): ${response.statusCode} - ${response.body}');
+    if (response.statusCode == 401) {
+      print('Token invalide ou expiré, tentative de rafraîchissement...');
+      final newToken = await AuthService().refreshToken();
+      if (newToken != null) {
+        headers['Authorization'] = 'Bearer $newToken';
+        print('Nouvel en-tête avec token rafraîchi: $headers');
+        final retryResponse = await http
+            .post(
+              url,
+              headers: headers,
+              body: jsonEncode(sanitizedData),
+            )
+            .timeout(const Duration(seconds: 10));
+        print(
+            'Réponse API après rafraîchissement (POST $url): ${retryResponse.statusCode} - ${retryResponse.body}');
+        if (retryResponse.statusCode == 201) {
+          return retryResponse;
+        }
+        throw Exception(
+            'Erreur après rafraîchissement: ${retryResponse.statusCode} - ${retryResponse.body}');
+      }
+      throw Exception('Non autorisé : impossible de rafraîchir le token');
+    } else if (response.statusCode != 201) {
+      throw Exception(
+          'Erreur création: ${response.statusCode} - ${response.body}');
+    }
+    return response;
+  }
+
+  /// Effectue une requête PUT avec gestion du rafraîchissement du token.
+  Future<http.Response> _performPutRequest(
+      Uri url, Map<String, dynamic> data) async {
+    final headers = await _getHeaders();
+    print('En-têtes de la requête: $headers');
+    final sanitizedData = _sanitizeData(data);
+    print('Données nettoyées avant envoi: $sanitizedData');
+    final response = await http
+        .put(
+          url,
+          headers: headers,
+          body: jsonEncode(sanitizedData),
+        )
+        .timeout(const Duration(seconds: 10));
+    print('Réponse API (PUT $url): ${response.statusCode} - ${response.body}');
+    if (response.statusCode == 401) {
+      print('Token invalide ou expiré, tentative de rafraîchissement...');
+      final newToken = await AuthService().refreshToken();
+      if (newToken != null) {
+        headers['Authorization'] = 'Bearer $newToken';
+        print('Nouvel en-tête avec token rafraîchi: $headers');
+        final retryResponse = await http
+            .put(
+              url,
+              headers: headers,
+              body: jsonEncode(sanitizedData),
+            )
+            .timeout(const Duration(seconds: 10));
+        print(
+            'Réponse API après rafraîchissement (PUT $url): ${retryResponse.statusCode} - ${retryResponse.body}');
+        if (retryResponse.statusCode == 200) {
+          return retryResponse;
+        }
+        throw Exception(
+            'Erreur après rafraîchissement: ${retryResponse.statusCode} - ${retryResponse.body}');
+      }
+      throw Exception('Non autorisé : impossible de rafraîchir le token');
+    } else if (response.statusCode != 200) {
+      throw Exception(
+          'Erreur modification: ${response.statusCode} - ${response.body}');
+    }
+    return response;
+  }
+
+  /// Effectue une requête DELETE avec gestion du rafraîchissement du token.
+  Future<http.Response> _performDeleteRequest(Uri url) async {
+    final headers = await _getHeaders();
+    print('En-têtes de la requête: $headers');
+    final response = await http
+        .delete(url, headers: headers)
+        .timeout(const Duration(seconds: 10));
+    print(
+        'Réponse API (DELETE $url): ${response.statusCode} - ${response.body}');
+    if (response.statusCode == 401) {
+      print('Token invalide ou expiré, tentative de rafraîchissement...');
+      final newToken = await AuthService().refreshToken();
+      if (newToken != null) {
+        headers['Authorization'] = 'Bearer $newToken';
+        print('Nouvel en-tête avec token rafraîchi: $headers');
+        final retryResponse = await http
+            .delete(url, headers: headers)
+            .timeout(const Duration(seconds: 10));
+        print(
+            'Réponse API après rafraîchissement (DELETE $url): ${retryResponse.statusCode} - ${retryResponse.body}');
+        if (retryResponse.statusCode == 204) {
+          return retryResponse;
+        }
+        throw Exception(
+            'Erreur après rafraîchissement: ${retryResponse.statusCode} - ${retryResponse.body}');
+      }
+      throw Exception('Non autorisé : impossible de rafraîchir le token');
+    }
+    return response;
+  }
 }

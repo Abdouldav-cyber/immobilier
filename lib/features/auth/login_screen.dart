@@ -11,9 +11,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   final AuthService _authService = AuthService();
@@ -30,23 +29,27 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
       _errorMessage = '';
     });
+    print('Tentative de connexion avec email: ${_emailController.text}');
 
     try {
       final result = await _authService.login(
-        username: _usernameController.text,
+        email: _emailController.text,
         password: _passwordController.text,
       );
 
       if (result['success']) {
+        print('Connexion réussie, navigation vers la page d\'accueil');
         Navigator.pushReplacementNamed(context, Routes.home);
       } else {
         setState(() {
           _errorMessage = result['error'] ?? 'Erreur de connexion';
+          print('Erreur de connexion: $_errorMessage');
         });
       }
     } catch (e) {
       setState(() {
         _errorMessage = 'Erreur réseau : $e';
+        print('Erreur réseau lors de la connexion: $e');
       });
     } finally {
       setState(() {
@@ -60,11 +63,14 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
       _errorMessage = '';
     });
+    print(
+        'Tentative d\'inscription avec email: ${_emailController.text}, username: ${_emailController.text}');
 
     if (_passwordController.text != _confirmPasswordController.text) {
       setState(() {
         _errorMessage = 'Les mots de passe ne correspondent pas';
         _isLoading = false;
+        print('Erreur d\'inscription: Les mots de passe ne correspondent pas');
       });
       return;
     }
@@ -72,7 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final response = await _authService.register(
         email: _emailController.text,
-        username: _usernameController.text,
+        username: _emailController
+            .text, // Utilisation de l'email comme username temporaire
         password: _passwordController.text,
       );
 
@@ -80,15 +87,18 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() {
           _errorMessage = 'Inscription réussie ! Connectez-vous maintenant.';
           _showRegister = false;
+          print('Inscription réussie');
         });
       } else {
         setState(() {
           _errorMessage = response['error'] ?? 'Erreur d\'inscription';
+          print('Erreur d\'inscription: $_errorMessage');
         });
       }
     } catch (e) {
       setState(() {
         _errorMessage = 'Erreur réseau : $e';
+        print('Erreur réseau lors de l\'inscription: $e');
       });
     } finally {
       setState(() {
@@ -102,6 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
       _errorMessage = '';
     });
+    print('Tentative de réinitialisation pour email: ${_emailController.text}');
 
     try {
       final result =
@@ -112,16 +123,19 @@ class _LoginScreenState extends State<LoginScreen> {
               'Un lien de réinitialisation a été envoyé à votre e-mail.';
           _isResetPasswordMode = false;
           _emailController.clear();
+          print('Réinitialisation réussie: $_errorMessage');
         });
       } else {
         setState(() {
           _errorMessage =
               result['error'] ?? 'Erreur lors de la réinitialisation';
+          print('Erreur de réinitialisation: $_errorMessage');
         });
       }
     } catch (e) {
       setState(() {
         _errorMessage = 'Erreur réseau : $e';
+        print('Erreur réseau lors de la réinitialisation: $e');
       });
     } finally {
       setState(() {
@@ -135,9 +149,11 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
       _errorMessage = '';
     });
+    print('Tentative de connexion avec Google');
 
     try {
       await _authService.signInWithGoogle();
+      print('Connexion Google réussie');
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -145,6 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() {
         _errorMessage = 'Erreur lors de la connexion Google : $e';
+        print('Erreur lors de la connexion Google: $e');
       });
     } finally {
       setState(() {
@@ -155,9 +172,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
@@ -228,23 +244,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           filled: true,
                           fillColor: Colors.grey[100],
                         ),
+                        keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 16),
                     ],
                     if (!_isResetPasswordMode &&
                         !_errorMessage.contains('réinitialisation')) ...[
                       TextField(
-                        controller: _usernameController,
+                        controller: _emailController,
                         decoration: InputDecoration(
-                          labelText: 'Nom d\'utilisateur',
+                          labelText: 'Email',
                           prefixIcon:
-                              Icon(Icons.person, color: Colors.blue.shade900),
+                              Icon(Icons.email, color: Colors.blue.shade900),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           filled: true,
                           fillColor: Colors.grey[100],
                         ),
+                        keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 16),
                       TextField(
@@ -325,10 +343,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                     const SizedBox(height: 20),
                     if (_errorMessage.isNotEmpty)
-                      Text(
-                        _errorMessage,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(
+                          _errorMessage,
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     const SizedBox(height: 20),
                     _isLoading
@@ -407,9 +428,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     setState(() {
                                       _showRegister = !_showRegister;
                                       _errorMessage = '';
-                                      _usernameController.clear();
-                                      _passwordController.clear();
                                       _emailController.clear();
+                                      _passwordController.clear();
                                       _confirmPasswordController.clear();
                                     });
                                   },

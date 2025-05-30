@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_immo/core/config/constants/routes.dart';
 import 'package:gestion_immo/features/agences/agences_screen.dart';
-import 'package:gestion_immo/features/commodite_maisons/commodite_maisons_screen.dart';
-import 'package:gestion_immo/features/commodites/commodites_screen.dart';
 import 'package:gestion_immo/features/home_screen.dart';
 import 'package:gestion_immo/features/locations/locations_screen.dart';
 import 'package:gestion_immo/features/maisons/maisons_screen.dart';
 import 'package:gestion_immo/features/paiements/paiements_screen.dart';
 import 'package:gestion_immo/features/penalites/penalites_screen.dart';
 import 'package:gestion_immo/features/photos/photos_screen.dart';
-import 'package:gestion_immo/features/type_document/type_document_screen.dart';
-import 'package:gestion_immo/features/type_documents/type_documents_screen.dart';
-import 'package:gestion_immo/features/communes/communes_screen.dart';
+import 'package:gestion_immo/features/parametres/parametres_screen.dart'; // Ajout de l'import pour ParametresScreen
 
 void main() {
   runApp(const MyApp());
@@ -36,11 +32,15 @@ class MyApp extends StatelessWidget {
         Routes.locations: (context) => LocationsScreen(),
         Routes.paiements: (context) => PaiementsScreen(),
         Routes.penalites: (context) => PenalitesScreen(),
-        Routes.type_documents: (context) => TypeDocumentsScreen(),
-        Routes.communes: (context) => CommunesScreen(),
-        Routes.commodites: (context) => CommoditesScreen(),
-        Routes.commoditeMaisons: (context) => CommoditeMaisonsScreen(),
         Routes.photos: (context) => PhotosScreen(),
+        // Ajout de la route pour ParametresScreen
+        Routes.parametres: (context) => const ParametresScreen(),
+        // Commenter les routes des écrans déplacés vers parametres/
+        // Routes.communes: (context) => CommuneScreen(),
+        // Routes.commodites: (context) => CommoditesScreen(),
+        // Routes.commoditeMaisons: (context) => CommoditeMaisonsScreen(),
+        // Routes.type_documents: (context) => TypeDocumentsScreen(),
+        // Routes.type_document: (context) => TypeDocumentScreen(),
       },
     );
   }

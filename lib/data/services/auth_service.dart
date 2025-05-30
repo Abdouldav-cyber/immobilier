@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gestion_immo/data/core/config/app_config.dart';
-import 'package:gestion_immo/data/models/user.dart';
 
 class AuthService {
   final String baseUrl = AppConfig.apiBaseUrl;
@@ -11,8 +10,9 @@ class AuthService {
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userDataKey = 'user_data';
 
+  /// Authentifie un utilisateur via email et mot de passe.
   Future<Map<String, dynamic>> login({
-    required String username,
+    required String email,
     required String password,
   }) async {
     try {
@@ -21,7 +21,7 @@ class AuthService {
         Uri.parse('$baseUrl/api/token/'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
-          'username': username,
+          'email': email,
           'password': password,
         },
       );
@@ -33,24 +33,30 @@ class AuthService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_accessTokenKey, data['access']);
         await prefs.setString(_refreshTokenKey, data['refresh']);
+        print('Token d\'accès sauvegardé: ${data['access']}');
+        print('Token de rafraîchissement sauvegardé: ${data['refresh']}');
         final userData = await _fetchUserData(data['access']);
         await prefs.setString(_userDataKey, jsonEncode(userData));
         print('Données utilisateur stockées: $userData');
         return {'success': true};
       } else {
         final errorData = jsonDecode(response.body);
+        final errorMessage = errorData['detail'] ??
+            errorData['non_field_errors']?.join(' ') ??
+            'Erreur de connexion';
+        print('Erreur de connexion: $errorMessage');
         return {
           'success': false,
-          'error':
-              errorData['non_field_errors']?.join(' ') ?? 'Erreur de connexion',
+          'error': errorMessage,
         };
       }
     } catch (e) {
-      print('Erreur lors de la connexion: $e');
+      print('Erreur réseau lors de la connexion: $e');
       return {'success': false, 'error': 'Erreur réseau : $e'};
     }
   }
 
+  /// Inscrit un nouvel utilisateur.
   Future<Map<String, dynamic>> register({
     required String email,
     required String username,
@@ -74,85 +80,119 @@ class AuthService {
           'Réponse API (POST /api/auth/registration/): ${response.statusCode} - ${response.body}');
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        final authResponse = AuthResponse.fromJson(data);
-        await saveTokens(authResponse.accessToken, authResponse.refreshToken);
         final prefs = await SharedPreferences.getInstance();
-        if (authResponse.user != null) {
-          await prefs.setString('username', authResponse.user!.username);
-          await prefs.setString('email', authResponse.user!.email);
-          await prefs.setString(
-              _userDataKey, jsonEncode(authResponse.user!.toJson()));
-          print(
-              'Données utilisateur stockées lors de l\'inscription: ${authResponse.user!.toJson()}');
-        }
+        await prefs.setString(_accessTokenKey, data['access']);
+        await prefs.setString(_refreshTokenKey, data['refresh']);
+        print('Token d\'accès sauvegardé: ${data['access']}');
+        print('Token de rafraîchissement sauvegardé: ${data['refresh']}');
+        final userData = await _fetchUserData(data['access']);
+        await prefs.setString(_userDataKey, jsonEncode(userData));
+        print('Données utilisateur stockées lors de l\'inscription: $userData');
         return {'success': true};
       } else {
         final errorData = jsonDecode(response.body);
+        final errorMessage = errorData['detail'] ??
+            errorData['non_field_errors']?.join(' ') ??
+            'Erreur d\'inscription';
+        print('Erreur d\'inscription: $errorMessage');
         return {
           'success': false,
-          'error': errorData['non_field_errors']?.join(' ') ??
-              'Erreur d\'inscription',
+          'error': errorMessage,
         };
       }
     } catch (e) {
-      print('Erreur lors de l\'inscription: $e');
+      print('Erreur réseau lors de l\'inscription: $e');
       return {'success': false, 'error': 'Erreur réseau : $e'};
     }
   }
 
+  /// Simule une réinitialisation de mot de passe (à implémenter réellement plus tard).
   Future<Map<String, dynamic>> resetPassword({required String email}) async {
     try {
-      print('Simulation de réinitialisation de mot de passe pour $email');
-      return {
-        'success': true,
-        'message': 'Lien de réinitialisation simulé envoyé à $email',
-      };
-    } catch (e) {
       print(
-          'Erreur lors de la simulation de réinitialisation de mot de passe: $e');
-      return {'success': false, 'error': 'Erreur simulée : $e'};
-    }
-  }
-
-  Future<AuthResponse> signInWithGoogle() async {
-    try {
-      print('Simulation de connexion avec Google');
-      const String simulatedEmail = 'utilisateur@exemple.com';
-      const String simulatedAccessToken = 'simulated_access_token';
-      const String simulatedRefreshToken = 'simulated_refresh_token';
-
-      final authResponse = AuthResponse(
-        accessToken: simulatedAccessToken,
-        refreshToken: simulatedRefreshToken,
-        user: null,
+          'Début de l\'appel POST à $baseUrl/api/auth/password/reset/ pour réinitialisation');
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/auth/password/reset/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
       );
-      await saveTokens(authResponse.accessToken, authResponse.refreshToken);
-      final simulatedUserData = {
-        'email': simulatedEmail,
-        'username': 'utilisateur_google',
-        'agence_id': '999',
-      };
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_userDataKey, jsonEncode(simulatedUserData));
-      print('Données utilisateur simulées stockées: $simulatedUserData');
-      return authResponse;
+
+      print(
+          'Réponse API (POST /api/auth/password/reset/): ${response.statusCode} - ${response.body}');
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': 'Lien de réinitialisation envoyé à $email',
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        final errorMessage =
+            errorData['detail'] ?? 'Erreur lors de la réinitialisation';
+        print('Erreur de réinitialisation: $errorMessage');
+        return {
+          'success': false,
+          'error': errorMessage,
+        };
+      }
     } catch (e) {
-      print('Erreur lors de la simulation de connexion Google: $e');
-      throw Exception('Erreur lors de la simulation de connexion Google: $e');
+      print('Erreur réseau lors de la réinitialisation de mot de passe: $e');
+      return {'success': false, 'error': 'Erreur réseau : $e'};
     }
   }
 
+  /// Simule une connexion avec Google (à implémenter réellement plus tard).
+  Future<Map<String, dynamic>> signInWithGoogle() async {
+    try {
+      print(
+          'Début de l\'appel POST à $baseUrl/api/auth/google/ pour connexion Google');
+      // À implémenter avec une vraie intégration Google Sign-In
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/auth/google/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'access_token':
+              'google_access_token', // À remplacer par un vrai token Google
+        }),
+      );
+
+      print(
+          'Réponse API (POST /api/auth/google/): ${response.statusCode} - ${response.body}');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_accessTokenKey, data['access']);
+        await prefs.setString(_refreshTokenKey, data['refresh']);
+        print('Token d\'accès sauvegardé: ${data['access']}');
+        print('Token de rafraîchissement sauvegardé: ${data['refresh']}');
+        final userData = await _fetchUserData(data['access']);
+        await prefs.setString(_userDataKey, jsonEncode(userData));
+        print('Données utilisateur stockées: $userData');
+        return {'success': true};
+      } else {
+        final errorData = jsonDecode(response.body);
+        final errorMessage =
+            errorData['detail'] ?? 'Erreur lors de la connexion Google';
+        print('Erreur de connexion Google: $errorMessage');
+        return {'success': false, 'error': errorMessage};
+      }
+    } catch (e) {
+      print('Erreur réseau lors de la connexion Google: $e');
+      return {'success': false, 'error': 'Erreur réseau : $e'};
+    }
+  }
+
+  /// Vérifie si un utilisateur est authentifié.
   Future<bool> isAuthenticated() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isAuthenticated = prefs.containsKey(_accessTokenKey);
+    final accessToken = await getAccessToken();
+    final isAuthenticated = accessToken != null && accessToken.isNotEmpty;
     print('Vérification d\'authentification: $isAuthenticated');
     return isAuthenticated;
   }
 
+  /// Déconnecte l'utilisateur et appelle l'API de déconnexion.
   Future<void> logout() async {
     try {
       print('Début de la déconnexion');
-      final prefs = await SharedPreferences.getInstance();
       final token = await getAccessToken();
       if (token != null) {
         final response = await http.post(
@@ -168,10 +208,9 @@ class AuthService {
           print('Erreur lors de la déconnexion côté serveur: ${response.body}');
         }
       }
+      final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_accessTokenKey);
       await prefs.remove(_refreshTokenKey);
-      await prefs.remove('username');
-      await prefs.remove('email');
       await prefs.remove(_userDataKey);
       print('Déconnexion réussie');
     } catch (e) {
@@ -180,6 +219,7 @@ class AuthService {
     }
   }
 
+  /// Sauvegarde les tokens dans SharedPreferences.
   Future<void> saveTokens(String accessToken, String refreshToken) async {
     try {
       print(
@@ -193,6 +233,7 @@ class AuthService {
     }
   }
 
+  /// Récupère les tokens depuis SharedPreferences.
   Future<Map<String, String>> getTokens() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -208,6 +249,7 @@ class AuthService {
     }
   }
 
+  /// Récupère le token d'accès.
   Future<String?> getAccessToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -220,20 +262,16 @@ class AuthService {
     }
   }
 
-  Future<String?> getToken() async {
-    return await getAccessToken();
-  }
-
+  /// Récupère les données utilisateur depuis SharedPreferences ou l'API.
   Future<Map<String, dynamic>> getUserData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userDataString = prefs.getString(_userDataKey);
       if (userDataString == null) {
         print('Aucune donnée utilisateur trouvée dans SharedPreferences');
-        // Tenter de recharger les données depuis l'API si un token existe
         final accessToken = await getAccessToken();
         if (accessToken != null) {
-          final userData = await _fetchUserData(accessToken);
+          final userData = await _fetchUserDataWithRefresh(accessToken);
           await prefs.setString(_userDataKey, jsonEncode(userData));
           print('Données utilisateur rechargées depuis l\'API: $userData');
           return userData;
@@ -241,8 +279,8 @@ class AuthService {
         return {
           'username': 'Inconnu',
           'email': '',
-          'agence_id': null
-        }; // Valeur par défaut
+          'agence_id': null,
+        };
       }
       final userData = jsonDecode(userDataString);
       print('Données utilisateur récupérées: $userData');
@@ -254,10 +292,50 @@ class AuthService {
     }
   }
 
-  Future<Map<String, dynamic>> _fetchUserData(String accessToken) async {
+  /// Rafraîchit le token d'accès avec le token de rafraîchissement.
+  Future<String?> refreshToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final refreshToken = prefs.getString(_refreshTokenKey);
+      if (refreshToken == null || refreshToken.isEmpty) {
+        print('Aucun token de rafraîchissement disponible');
+        return null;
+      }
+
+      print(
+          'Début de l\'appel POST à $baseUrl/api/token/refresh/ pour rafraîchir le token');
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/token/refresh/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh': refreshToken}),
+      );
+
+      print(
+          'Réponse API (POST /api/token/refresh/): ${response.statusCode} - ${response.body}');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final newAccessToken = data['access'];
+        await prefs.setString(_accessTokenKey, newAccessToken);
+        print('Nouveau token d\'accès sauvegardé: $newAccessToken');
+        return newAccessToken;
+      } else {
+        print('Échec du rafraîchissement du token: ${response.body}');
+        await logout(); // Déconnexion si le rafraîchissement échoue
+        return null;
+      }
+    } catch (e) {
+      print('Erreur réseau lors du rafraîchissement du token: $e');
+      await logout();
+      return null;
+    }
+  }
+
+  /// Récupère les données utilisateur avec gestion du rafraîchissement du token.
+  Future<Map<String, dynamic>> _fetchUserDataWithRefresh(
+      String accessToken) async {
     try {
       print(
-          'Début de l\'appel GET à $baseUrl/api/user/ pour récupérer les données utilisateur');
+          'Début de l\'appel GET à $baseUrl/api/user/ avec token: $accessToken');
       final response = await http.get(
         Uri.parse('$baseUrl/api/user/'),
         headers: {
@@ -271,7 +349,12 @@ class AuthService {
         final userData = jsonDecode(response.body);
         return userData;
       } else if (response.statusCode == 401) {
-        throw Exception('Non autorisé : token invalide ou expiré');
+        print('Token invalide ou expiré, tentative de rafraîchissement...');
+        final newAccessToken = await refreshToken();
+        if (newAccessToken != null) {
+          return await _fetchUserDataWithRefresh(newAccessToken);
+        }
+        throw Exception('Non autorisé : impossible de rafraîchir le token');
       }
       throw Exception(
           'Erreur lors de la récupération des données utilisateur: ${response.statusCode} - ${response.body}');
@@ -281,5 +364,10 @@ class AuthService {
       throw Exception(
           'Erreur lors de la récupération des données utilisateur via API: $e');
     }
+  }
+
+  /// Méthode interne pour récupérer les données utilisateur (utilisée par les autres méthodes).
+  Future<Map<String, dynamic>> _fetchUserData(String accessToken) async {
+    return await _fetchUserDataWithRefresh(accessToken);
   }
 }
