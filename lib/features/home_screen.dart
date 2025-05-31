@@ -145,40 +145,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: ListView(
                     children: [
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1),
                       _buildSidebarItem(
-                          Icons.home, 'Accueil', () => setState(() {}), true),
+                          Icons.home,
+                          'Accueil',
+                          () => Navigator.pushNamed(context, Routes.home),
+                          true),
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1),
                       _buildSidebarItem(Icons.view_agenda, 'Maisons',
                           () => Navigator.pushNamed(context, Routes.maisons)),
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1),
                       _buildSidebarItem(Icons.business, 'Agences',
                           () => Navigator.pushNamed(context, Routes.agences)),
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1),
                       _buildSidebarItem(Icons.location_on, 'Locations',
                           () => Navigator.pushNamed(context, Routes.locations)),
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1),
                       _buildSidebarItem(Icons.payment, 'Paiements',
                           () => Navigator.pushNamed(context, Routes.paiements)),
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1),
                       _buildSidebarItem(Icons.warning, 'Pénalités',
                           () => Navigator.pushNamed(context, Routes.penalites)),
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1),
+                      _buildSidebarItem(Icons.photo, 'Photos',
+                          () => Navigator.pushNamed(context, Routes.photos)),
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1),
                       _buildSidebarItem(
                           Icons.settings,
                           'Paramètres',
                           () =>
                               Navigator.pushNamed(context, Routes.parametres)),
-                      _buildSidebarItem(Icons.photo, 'Photos',
-                          () => Navigator.pushNamed(context, Routes.photos)),
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: Tooltip(
-                          message: 'Déconnexion',
-                          child: ListTile(
-                            leading:
-                                Icon(Icons.logout, color: Colors.grey[300]),
-                            title: _isSidebarOpen
-                                ? Text('Déconnexion',
-                                    style: TextStyle(color: Colors.grey[300]))
-                                : null,
-                            onTap: _logout,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -222,10 +226,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
-                        IconButton(
-                          icon: Icon(Icons.notifications,
-                              color: Colors.white, size: 28),
-                          onPressed: () {},
+                        ElevatedButton.icon(
+                          onPressed: _logout,
+                          icon: Icon(Icons.logout, color: Colors.white),
+                          label: Text('Déconnexion',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 16)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal[900],
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            elevation: 0,
+                          ),
                         ),
                       ],
                     ),

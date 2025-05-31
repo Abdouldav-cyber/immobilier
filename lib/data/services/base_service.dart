@@ -46,7 +46,7 @@ abstract class BaseService {
   }
 
   /// Récupère tous les éléments avec gestion du rafraîchissement du token.
-  Future<List<dynamic>> getAll() async {
+  Future<dynamic> getAll() async {
     print('Début de l\'appel GET à $baseUrl/$endpoint/');
     final url = Uri.parse('$baseUrl/$endpoint/');
     try {
@@ -134,8 +134,6 @@ abstract class BaseService {
       if (response.statusCode == 201) {
         final data = jsonDecode(responseBody);
         return _sanitizeData(data);
-      } else if (response.statusCode == 401) {
-        throw Exception('Non autorisé : token invalide ou expiré');
       }
       throw Exception(
           'Erreur création: ${response.statusCode} - $responseBody');
@@ -202,27 +200,6 @@ abstract class BaseService {
         .get(url, headers: headers)
         .timeout(const Duration(seconds: 10));
     print('Réponse API (GET $url): ${response.statusCode} - ${response.body}');
-    if (response.statusCode == 401) {
-      print('Token invalide ou expiré, tentative de rafraîchissement...');
-      final newToken = await AuthService().refreshToken();
-      if (newToken != null) {
-        headers['Authorization'] = 'Bearer $newToken';
-        print('Nouvel en-tête avec token rafraîchi: $headers');
-        final retryResponse = await http
-            .get(url, headers: headers)
-            .timeout(const Duration(seconds: 10));
-        print(
-            'Réponse API après rafraîchissement (GET $url): ${retryResponse.statusCode} - ${retryResponse.body}');
-        if (retryResponse.statusCode == 200) {
-          return retryResponse;
-        }
-        throw Exception(
-            'Erreur après rafraîchissement: ${retryResponse.statusCode} - ${retryResponse.body}');
-      }
-      throw Exception('Non autorisé : impossible de rafraîchir le token');
-    } else if (response.statusCode != 200) {
-      throw Exception('Erreur API: ${response.statusCode} - ${response.body}');
-    }
     return response;
   }
 
@@ -241,32 +218,6 @@ abstract class BaseService {
         )
         .timeout(const Duration(seconds: 10));
     print('Réponse API (POST $url): ${response.statusCode} - ${response.body}');
-    if (response.statusCode == 401) {
-      print('Token invalide ou expiré, tentative de rafraîchissement...');
-      final newToken = await AuthService().refreshToken();
-      if (newToken != null) {
-        headers['Authorization'] = 'Bearer $newToken';
-        print('Nouvel en-tête avec token rafraîchi: $headers');
-        final retryResponse = await http
-            .post(
-              url,
-              headers: headers,
-              body: jsonEncode(sanitizedData),
-            )
-            .timeout(const Duration(seconds: 10));
-        print(
-            'Réponse API après rafraîchissement (POST $url): ${retryResponse.statusCode} - ${retryResponse.body}');
-        if (retryResponse.statusCode == 201) {
-          return retryResponse;
-        }
-        throw Exception(
-            'Erreur après rafraîchissement: ${retryResponse.statusCode} - ${retryResponse.body}');
-      }
-      throw Exception('Non autorisé : impossible de rafraîchir le token');
-    } else if (response.statusCode != 201) {
-      throw Exception(
-          'Erreur création: ${response.statusCode} - ${response.body}');
-    }
     return response;
   }
 
@@ -285,32 +236,6 @@ abstract class BaseService {
         )
         .timeout(const Duration(seconds: 10));
     print('Réponse API (PUT $url): ${response.statusCode} - ${response.body}');
-    if (response.statusCode == 401) {
-      print('Token invalide ou expiré, tentative de rafraîchissement...');
-      final newToken = await AuthService().refreshToken();
-      if (newToken != null) {
-        headers['Authorization'] = 'Bearer $newToken';
-        print('Nouvel en-tête avec token rafraîchi: $headers');
-        final retryResponse = await http
-            .put(
-              url,
-              headers: headers,
-              body: jsonEncode(sanitizedData),
-            )
-            .timeout(const Duration(seconds: 10));
-        print(
-            'Réponse API après rafraîchissement (PUT $url): ${retryResponse.statusCode} - ${retryResponse.body}');
-        if (retryResponse.statusCode == 200) {
-          return retryResponse;
-        }
-        throw Exception(
-            'Erreur après rafraîchissement: ${retryResponse.statusCode} - ${retryResponse.body}');
-      }
-      throw Exception('Non autorisé : impossible de rafraîchir le token');
-    } else if (response.statusCode != 200) {
-      throw Exception(
-          'Erreur modification: ${response.statusCode} - ${response.body}');
-    }
     return response;
   }
 
@@ -323,25 +248,6 @@ abstract class BaseService {
         .timeout(const Duration(seconds: 10));
     print(
         'Réponse API (DELETE $url): ${response.statusCode} - ${response.body}');
-    if (response.statusCode == 401) {
-      print('Token invalide ou expiré, tentative de rafraîchissement...');
-      final newToken = await AuthService().refreshToken();
-      if (newToken != null) {
-        headers['Authorization'] = 'Bearer $newToken';
-        print('Nouvel en-tête avec token rafraîchi: $headers');
-        final retryResponse = await http
-            .delete(url, headers: headers)
-            .timeout(const Duration(seconds: 10));
-        print(
-            'Réponse API après rafraîchissement (DELETE $url): ${retryResponse.statusCode} - ${retryResponse.body}');
-        if (retryResponse.statusCode == 204) {
-          return retryResponse;
-        }
-        throw Exception(
-            'Erreur après rafraîchissement: ${retryResponse.statusCode} - ${retryResponse.body}');
-      }
-      throw Exception('Non autorisé : impossible de rafraîchir le token');
-    }
     return response;
   }
 }
