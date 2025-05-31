@@ -1,63 +1,56 @@
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:gestion_immo/data/services/base_service.dart';
-import 'package:gestion_immo/data/services/maison_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LocationService extends BaseService {
   LocationService() : super('locations');
 
-  @override
-  Future<dynamic> create(Map<String, dynamic> data) async {
-    final sanitizedData = {
-      'date': data['date'],
-      'type_de_document': data['type_de_document'],
-      'numero': data['numero'],
-      'date_etablissement': data['date_etablissement'],
-      'date_expiration': data['date_expiration'],
-      'nom': data['nom'],
-      'prenom': data['prenom'],
-      'client': data['client'],
-      'maison_id': data['maison_id'],
+  Future<Map<String, String>> _getHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token') ?? '';
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
     };
-    try {
-      final result = await super.create(sanitizedData);
-      // Mettre à jour l'état de la maison à 'Occuper'
-      final maisonService = MaisonService();
-      await maisonService.update(data['maison_id'], {'etat': 'Occuper'});
-      return result;
-    } catch (e) {
-      rethrow;
-    }
   }
 
   @override
-  Future<dynamic> update(int id, Map<String, dynamic> data) async {
-    final sanitizedData = {
-      'date': data['date'],
-      'type_de_document': data['type_de_document'],
-      'numero': data['numero'],
-      'date_etablissement': data['date_etablissement'],
-      'date_expiration': data['date_expiration'],
-      'nom': data['nom'],
-      'prenom': data['prenom'],
-      'client': data['client'],
-      'maison_id': data['maison_id'],
+  Future<dynamic> create(dynamic item) async {
+    final sanitizedItem = {
+      'maison_id': item['maison_id']?.toString() ?? '',
+      'locataire': item['locataire']?.toString() ?? '',
+      'date_debut': item['date_debut']?.toString() ?? '',
+      'date_fin': item['date_fin']?.toString() ?? '',
+      'montant_loyer': item['montant_loyer']?.toString() ?? '0',
     };
-    try {
-      final result = await super.update(id, sanitizedData);
-      return result;
-    } catch (e) {
-      rethrow;
-    }
+    return super.create(sanitizedItem);
   }
 
-  Future<void> cloturerLocation(int id, int maisonId) async {
-    try {
-      // Mettre à jour la location avec un statut "Clôturée" (ajouter un champ si nécessaire)
-      await super.update(id, {'statut': 'Clôturée'});
-      // Mettre à jour l'état de la maison à 'Libre'
-      final maisonService = MaisonService();
-      await maisonService.update(maisonId, {'etat': 'Libre'});
-    } catch (e) {
-      rethrow;
+  @override
+  Future<dynamic> update(dynamic id, dynamic item) async {
+    final sanitizedItem = {
+      'maison_id': item['maison_id']?.toString() ?? '',
+      'locataire': item['locataire']?.toString() ?? '',
+      'date_debut': item['date_debut']?.toString() ?? '',
+      'date_fin': item['date_fin']?.toString() ?? '',
+      'montant_loyer': item['montant_loyer']?.toString() ?? '0',
+    };
+    return super.update(id, sanitizedItem);
+  }
+
+  Future<dynamic> cloturerLocation(int id, int maisonId) async {
+    final url = Uri.parse('$baseUrl/locations/$id/cloturer/');
+    final headers = await _getHeaders();
+    final response = await http.put(
+      url,
+      headers: headers,
+      body: jsonEncode({'maison_id': maisonId, 'statut': 'CLOTUREE'}),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Erreur lors de la clôture: ${response.body}');
     }
   }
 }

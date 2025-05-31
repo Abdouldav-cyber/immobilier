@@ -38,45 +38,106 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.pushReplacementNamed(context, Routes.login);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la déconnexion: $e')),
+        SnackBar(
+            content: Text('Erreur lors de la déconnexion: $e'),
+            backgroundColor: Colors.redAccent),
       );
     }
+  }
+
+  Widget _buildSidebarItem(IconData icon, String title, VoidCallback onTap,
+      [bool isSelected = false]) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Tooltip(
+        message: title,
+        child: ListTile(
+          leading: Icon(icon,
+              color: isSelected ? Colors.white : Colors.grey[300], size: 26),
+          title: _isSidebarOpen
+              ? Text(
+                  title,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey[300],
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 16,
+                  ),
+                )
+              : null,
+          onTap: onTap,
+          tileColor: isSelected ? Colors.teal[700] : null,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard(
+      IconData icon, String title, String route, Color color) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => Navigator.pushNamed(context, route),
+        child: Card(
+          elevation: 6,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          color: Colors.white,
+          child: Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 40, color: color),
+                SizedBox(height: 10),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       body: Row(
         children: [
-          // Barre latérale permanente
           Container(
             width: _isSidebarOpen ? 250 : 70,
             height: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.brown[900],
-              boxShadow: const [
+              color: Colors.teal[900],
+              boxShadow: [
                 BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  offset: Offset(2, 0),
-                ),
+                    color: Colors.black26, blurRadius: 10, offset: Offset(2, 0))
               ],
             ),
             child: Column(
               children: [
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 ListTile(
-                  leading: Icon(
-                    _isSidebarOpen ? MdiIcons.close : MdiIcons.menu,
-                    color: Colors.white,
-                  ),
+                  leading: Icon(_isSidebarOpen ? MdiIcons.close : MdiIcons.menu,
+                      color: Colors.white),
                   title: _isSidebarOpen
-                      ? const Text(
+                      ? Text(
                           'Menu',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18),
                         )
                       : null,
                   onTap: _toggleSidebar,
@@ -111,10 +172,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             leading:
                                 Icon(Icons.logout, color: Colors.grey[300]),
                             title: _isSidebarOpen
-                                ? Text(
-                                    'Déconnexion',
-                                    style: TextStyle(color: Colors.grey[300]),
-                                  )
+                                ? Text('Déconnexion',
+                                    style: TextStyle(color: Colors.grey[300]))
                                 : null,
                             onTap: _logout,
                           ),
@@ -126,19 +185,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          // Contenu principal
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // En-tête
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.brown[600]!, Colors.brown[800]!],
-                      ),
+                          colors: [Colors.teal[600]!, Colors.teal[800]!]),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: Offset(0, 4))
+                      ],
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -146,53 +208,48 @@ class _HomeScreenState extends State<HomeScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Gestion Immo',
                               style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
                             ),
                             Text(
                               'Bienvenue, $_username',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.white70,
-                              ),
+                              style: TextStyle(
+                                  fontSize: 16, color: Colors.white70),
                             ),
                           ],
                         ),
                         IconButton(
-                          icon: const Icon(Icons.notifications,
+                          icon: Icon(Icons.notifications,
                               color: Colors.white, size: 28),
                           onPressed: () {},
                         ),
                       ],
                     ),
                   ),
-                  // Grille des fonctionnalités
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Tableau de bord',
                           style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.brown,
-                          ),
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal[900]),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         SizedBox(
                           height: 600,
                           child: GridView.count(
                             crossAxisCount:
                                 MediaQuery.of(context).size.width > 600 ? 4 : 2,
                             shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
+                            physics: NeverScrollableScrollPhysics(),
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
                             childAspectRatio: 1.2,
@@ -207,8 +264,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Routes.paiements, Colors.teal),
                               _buildFeatureCard(Icons.warning, 'Pénalités',
                                   Routes.penalites, Colors.red),
-                              _buildFeatureCard(Icons.settings, 'Paramètres',
-                                  Routes.parametres, Colors.blueGrey),
                               _buildFeatureCard(Icons.photo, 'Photos',
                                   Routes.photos, Colors.deepPurple),
                             ],
@@ -222,75 +277,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSidebarItem(IconData icon, String title, VoidCallback onTap,
-      [bool isSelected = false]) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Tooltip(
-        message: title,
-        child: ListTile(
-          leading:
-              Icon(icon, color: isSelected ? Colors.white : Colors.grey[300]),
-          title: _isSidebarOpen
-              ? Text(
-                  title,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey[300],
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                )
-              : null,
-          onTap: onTap,
-          tileColor: isSelected ? Colors.brown[600] : null,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeatureCard(
-      IconData icon, String title, String route, Color color) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () => Navigator.pushNamed(context, route),
-        child: Card(
-          elevation: 4,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.white, color.withOpacity(0.1)],
-              ),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: 40, color: color),
-                  const SizedBox(height: 10),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -7,6 +7,8 @@ import 'package:gestion_immo/data/services/agence_service.dart';
 import 'package:gestion_immo/data/services/location_service.dart';
 import 'package:gestion_immo/data/services/maison_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 class EntityScreen extends StatefulWidget {
@@ -35,11 +37,11 @@ class _EntityScreenState extends State<EntityScreen> {
   String? errorMessage;
   Map<String, List<Map<String, dynamic>>> optionsCache = {};
   String? currentUserAgenceId;
-  List<String> photoPaths = [];
   String? selectedLogoPath;
-  Map<String, dynamic>? selectedAgence;
+  Map<String, dynamic>? selectedItem;
   DateTime? selectedDateDebut;
   DateTime? selectedDateFin;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -74,29 +76,21 @@ class _EntityScreenState extends State<EntityScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur lors du chargement: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
+            content: Text('Erreur: $e'), backgroundColor: Colors.redAccent),
       );
     }
   }
 
   Future<void> fetchOptions() async {
     for (var field in widget.fields) {
-      if (field['type'] == 'dropdown') {
+      if (field['type'] == 'dropdown' || field['type'] == 'multi_select') {
         final endpoint = field['options_endpoint'];
         if (endpoint != null && !optionsCache.containsKey(endpoint)) {
           try {
             late final dynamic service;
-            if (endpoint == 'agences') {
-              service = AgenceService();
-            } else if (endpoint == 'maisons') {
-              service = MaisonService();
-            } else if (endpoint == 'locations') {
-              service = LocationService();
-            } else {
-              throw Exception('Aucun service concret pour $endpoint');
-            }
+            if (endpoint == 'agences') service = AgenceService();
+            if (endpoint == 'maisons') service = MaisonService();
+            if (endpoint == 'locations') service = LocationService();
             final response = await service.getAll();
             setState(() {
               optionsCache[endpoint] = (response as List<dynamic>)
@@ -104,6 +98,7 @@ class _EntityScreenState extends State<EntityScreen> {
                         'id': item['id'].toString(),
                         'label': item['nom']?.toString() ??
                             item['numero']?.toString() ??
+                            item['locataire']?.toString() ??
                             'N/A',
                         'agence_id': item['agence_id']?.toString(),
                       })
@@ -111,14 +106,12 @@ class _EntityScreenState extends State<EntityScreen> {
             });
           } catch (e) {
             setState(() {
-              errorMessage =
-                  'Erreur lors du chargement des options pour $endpoint: $e';
+              errorMessage = 'Erreur options pour $endpoint: $e';
             });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Erreur lors du chargement des options: $e'),
-                backgroundColor: Colors.redAccent,
-              ),
+                  content: Text('Erreur options: $e'),
+                  backgroundColor: Colors.redAccent),
             );
           }
         }
@@ -131,37 +124,38 @@ class _EntityScreenState extends State<EntityScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Text(
-          'Confirmer la suppression',
-          style: TextStyle(color: Colors.brown, fontWeight: FontWeight.bold),
-        ),
-        content: const Text('Voulez-vous vraiment supprimer cet élément ?'),
+        title: Text('Confirmer la suppression',
+            style:
+                TextStyle(color: Colors.red[700], fontWeight: FontWeight.bold)),
+        content: Text('Voulez-vous vraiment supprimer cet élément ?',
+            style: TextStyle(color: Colors.black87)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Non', style: TextStyle(color: Colors.grey)),
+            child: Text('Non', style: TextStyle(color: Colors.grey[600])),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Oui', style: TextStyle(color: Colors.redAccent)),
+            child: Text('Oui', style: TextStyle(color: Colors.red[700])),
           ),
         ],
       ),
     );
-
     if (confirmDelete == true) {
       try {
         await widget.service.delete(id);
-        setState(() {
-          selectedAgence = null;
-        });
+        setState(() => selectedItem = null);
         fetchItems();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Élément supprimé avec succès'),
+              backgroundColor: Colors.green[600]),
+        );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de la suppression: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
+              content: Text('Erreur suppression: $e'),
+              backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -170,7 +164,6 @@ class _EntityScreenState extends State<EntityScreen> {
   Future<void> _showFormDialog({dynamic item}) async {
     final isEditing = item != null;
     final formData = Map<String, dynamic>.from(item ?? {});
-    photoPaths = List<String>.from(formData['photos'] ?? []);
     selectedLogoPath = formData['logo'];
     selectedDateDebut = formData['date_debut'] != null
         ? DateTime.parse(formData['date_debut'])
@@ -181,214 +174,114 @@ class _EntityScreenState extends State<EntityScreen> {
 
     await showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          backgroundColor: Colors.grey[100],
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return Container(
-                padding: const EdgeInsets.all(20),
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.8,
-                  maxHeight: MediaQuery.of(context).size.height * 0.8,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.grey[50],
+        content: StatefulBuilder(
+          builder: (context, setState) => Container(
+            padding: EdgeInsets.all(20),
+            constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.8,
+                maxHeight: MediaQuery.of(context).size.height * 0.8),
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
                             isEditing
                                 ? 'Modifier ${widget.title}'
                                 : 'Ajouter ${widget.title}',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.brown,
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(MdiIcons.close, color: Colors.grey),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      // Filtrer les champs à exclure
-                      ...widget.fields
-                          .where((field) =>
-                              field['name'] != 'latitude' &&
-                              field['name'] != 'longitude' &&
-                              field['name'] != 'latitude_degrees' &&
-                              field['name'] != 'latitude_minutes' &&
-                              field['name'] != 'latitude_seconds' &&
-                              field['name'] != 'longitude_degrees' &&
-                              field['name'] != 'longitude_minutes' &&
-                              field['name'] != 'longitude_seconds' &&
-                              (widget.title == 'Maisons'
-                                  ? (field['name'] != 'type_document_id' &&
-                                      field['name'] != 'commodite_id' &&
-                                      field['name'] != 'coordonnees')
-                                  : true) &&
-                              (widget.title == 'Locations' ||
-                                      widget.title == 'Agences'
-                                  ? field['name'] != 'coordonnees'
-                                  : true))
-                          .map((field) {
-                        if (field['name'] == 'agence_id') {
-                          final options = optionsCache['agences'] ?? [];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                labelText: 'Agences',
-                                labelStyle:
-                                    const TextStyle(color: Colors.brown),
-                                prefixIcon: Icon(MdiIcons.officeBuilding,
-                                    color: Colors.brown[700]),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
+                            style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal[700])),
+                        IconButton(
+                            icon: Icon(MdiIcons.close, color: Colors.grey[600]),
+                            onPressed: () => Navigator.pop(context)),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    ...widget.fields
+                        .where((field) =>
+                            !['latitude', 'longitude'].contains(field['name']))
+                        .map((field) {
+                      if (field['type'] == 'dropdown') {
+                        final options =
+                            optionsCache[field['options_endpoint']] ?? [];
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 16),
+                          child: DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              labelText: field['label'],
+                              labelStyle: TextStyle(color: Colors.teal[700]),
+                              prefixIcon:
+                                  Icon(field['icon'], color: Colors.teal[700]),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                   borderSide:
-                                      const BorderSide(color: Colors.brown),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  borderSide: const BorderSide(
-                                      color: Colors.brown, width: 2),
-                                ),
-                                filled: true,
-                                fillColor: Colors.brown[50],
-                              ),
-                              value: formData[field['name']]?.toString(),
-                              items: options.map((option) {
-                                return DropdownMenuItem<String>(
-                                  value: option['id'],
-                                  child: Row(
-                                    children: [
-                                      Icon(MdiIcons.checkCircle,
-                                          color: Colors.green[700], size: 16),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        option['label'],
-                                        style: const TextStyle(
-                                            color: Colors.black87),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                formData[field['name']] = value;
-                              },
+                                      BorderSide(color: Colors.teal[700]!)),
+                              focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                      color: Colors.teal[900]!, width: 2)),
+                              filled: true,
+                              fillColor: Colors.teal[50],
                             ),
-                          );
-                        } else if (field['name'] == 'maison_id') {
-                          final options = optionsCache['maisons'] ?? [];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                labelText: 'Maison',
-                                labelStyle:
-                                    const TextStyle(color: Colors.brown),
-                                prefixIcon: Icon(MdiIcons.home,
-                                    color: Colors.brown[700]),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  borderSide:
-                                      const BorderSide(color: Colors.brown),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  borderSide: const BorderSide(
-                                      color: Colors.brown, width: 2),
-                                ),
-                                filled: true,
-                                fillColor: Colors.brown[50],
-                              ),
-                              value: formData[field['name']]?.toString(),
-                              items: options.map((option) {
-                                return DropdownMenuItem<String>(
-                                  value: option['id'],
-                                  child: Row(
-                                    children: [
-                                      Icon(MdiIcons.checkCircle,
-                                          color: Colors.green[700], size: 16),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        option['label'],
-                                        style: const TextStyle(
-                                            color: Colors.black87),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                formData[field['name']] =
-                                    int.tryParse(value ?? '0') ?? 0;
-                              },
-                            ),
-                          );
-                        } else if (field['name'] == 'date_debut' ||
-                            field['name'] == 'date_fin') {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: GestureDetector(
-                              onTap: () async {
-                                final DateTime? picked = await showDatePicker(
+                            value: formData[field['name']]?.toString(),
+                            items: options
+                                .map((option) => DropdownMenuItem<String>(
+                                    value: option['id'],
+                                    child: Text(option['label'],
+                                        style:
+                                            TextStyle(color: Colors.black87))))
+                                .toList(),
+                            onChanged: (value) =>
+                                formData[field['name']] = value,
+                          ),
+                        );
+                      } else if (field['type'] == 'date') {
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 16),
+                          child: GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
                                   context: context,
                                   initialDate: DateTime.now(),
                                   firstDate: DateTime(2000),
-                                  lastDate: DateTime(2100),
-                                  builder: (context, child) {
-                                    return Theme(
-                                      data: ThemeData.light().copyWith(
-                                        colorScheme: const ColorScheme.light(
-                                          primary: Colors.brown,
-                                          onPrimary: Colors.white,
-                                          surface: Colors.white,
-                                          onSurface: Colors.black,
-                                        ),
-                                        dialogBackgroundColor: Colors.white,
-                                      ),
-                                      child: child!,
-                                    );
-                                  },
-                                );
-                                if (picked != null) {
-                                  setState(() {
-                                    if (field['name'] == 'date_debut') {
-                                      selectedDateDebut = picked;
-                                      formData['date_debut'] =
-                                          picked.toIso8601String();
-                                    } else {
-                                      selectedDateFin = picked;
-                                      formData['date_fin'] =
-                                          picked.toIso8601String();
-                                    }
-                                  });
-                                }
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.brown),
-                                  borderRadius: BorderRadius.circular(15),
-                                  color: Colors.brown[50],
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
-                                child: Row(
-                                  children: [
-                                    Icon(MdiIcons.calendar,
-                                        color: Colors.brown[700]),
-                                    const SizedBox(width: 8),
-                                    Text(
+                                  lastDate: DateTime(2100));
+                              if (picked != null) {
+                                setState(() {
+                                  if (field['name'] == 'date_debut') {
+                                    selectedDateDebut = picked;
+                                    formData['date_debut'] =
+                                        picked.toIso8601String();
+                                  } else {
+                                    selectedDateFin = picked;
+                                    formData['date_fin'] =
+                                        picked.toIso8601String();
+                                  }
+                                });
+                              }
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.teal[700]!),
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: Colors.teal[50]),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Icon(MdiIcons.calendar,
+                                      color: Colors.teal[700]),
+                                  SizedBox(width: 8),
+                                  Text(
                                       field['name'] == 'date_debut'
                                           ? (selectedDateDebut != null
                                               ? '${selectedDateDebut!.day}/${selectedDateDebut!.month}/${selectedDateDebut!.year}'
@@ -396,542 +289,265 @@ class _EntityScreenState extends State<EntityScreen> {
                                           : (selectedDateFin != null
                                               ? '${selectedDateFin!.day}/${selectedDateFin!.month}/${selectedDateFin!.year}'
                                               : 'Sélectionner Date Fin'),
-                                      style: const TextStyle(
-                                          color: Colors.black87, fontSize: 16),
-                                    ),
-                                  ],
-                                ),
+                                      style: TextStyle(
+                                          color: Colors.black87, fontSize: 16)),
+                                ],
                               ),
                             ),
-                          );
-                        } else {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: TextFormField(
-                              initialValue:
-                                  formData[field['name']]?.toString() ?? '',
-                              readOnly: field['readOnly'] == true,
-                              decoration: InputDecoration(
-                                labelText: field['label'],
-                                labelStyle:
-                                    const TextStyle(color: Colors.brown),
-                                prefixIcon: Icon(
-                                  field['icon'] ?? MdiIcons.text,
-                                  color: Colors.brown[700],
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  borderSide:
-                                      const BorderSide(color: Colors.brown),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  borderSide: const BorderSide(
-                                      color: Colors.brown, width: 2),
-                                ),
-                                filled: true,
-                                fillColor: Colors.brown[50],
-                              ),
-                              keyboardType: field['type'] == 'number'
-                                  ? TextInputType.number
-                                  : field['type'] == 'email'
-                                      ? TextInputType.emailAddress
-                                      : TextInputType.text,
-                              onChanged: (value) {
-                                formData[field['name']] =
-                                    field['type'] == 'number'
-                                        ? num.tryParse(value) ?? 0
-                                        : value;
-                              },
-                            ),
-                          );
-                        }
-                      }).toList(),
-                      // Champs supplémentaires pour Agences : Nom et Immatriculation
-                      if (widget.title == 'Agences') ...[
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: TextFormField(
-                            initialValue: formData['nom']?.toString() ?? '',
-                            decoration: InputDecoration(
-                              labelText: 'Nom de l\'agence',
-                              labelStyle: const TextStyle(color: Colors.brown),
-                              prefixIcon: Icon(MdiIcons.officeBuilding,
-                                  color: Colors.brown[700]),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide:
-                                    const BorderSide(color: Colors.brown),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                    color: Colors.brown, width: 2),
-                              ),
-                              filled: true,
-                              fillColor: Colors.brown[50],
-                            ),
-                            onChanged: (value) {
-                              formData['nom'] = value;
-                            },
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: TextFormField(
-                            initialValue:
-                                formData['immatriculation']?.toString() ?? '',
-                            decoration: InputDecoration(
-                              labelText: 'Immatriculation',
-                              labelStyle: const TextStyle(color: Colors.brown),
-                              prefixIcon: Icon(MdiIcons.cardText,
-                                  color: Colors.brown[700]),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide:
-                                    const BorderSide(color: Colors.brown),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                    color: Colors.brown, width: 2),
-                              ),
-                              filled: true,
-                              fillColor: Colors.brown[50],
-                            ),
-                            onChanged: (value) {
-                              formData['immatriculation'] = value;
-                            },
-                          ),
-                        ),
-                      ],
-                      // Champs supplémentaires pour Maisons : Loyer et État
-                      if (widget.title == 'Maisons') ...[
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: TextFormField(
-                            initialValue: formData['loyer']?.toString() ?? '',
-                            decoration: InputDecoration(
-                              labelText: 'Loyer',
-                              labelStyle: const TextStyle(color: Colors.brown),
-                              prefixIcon: Icon(MdiIcons.currencyUsd,
-                                  color: Colors.brown[700]),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide:
-                                    const BorderSide(color: Colors.brown),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                    color: Colors.brown, width: 2),
-                              ),
-                              filled: true,
-                              fillColor: Colors.brown[50],
-                            ),
-                            keyboardType: TextInputType.number,
-                            onChanged: (value) {
-                              formData['loyer'] = num.tryParse(value) ?? 0;
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: DropdownButtonFormField<String>(
-                            decoration: InputDecoration(
-                              labelText: 'État de la maison',
-                              labelStyle: const TextStyle(color: Colors.brown),
-                              prefixIcon:
-                                  Icon(MdiIcons.home, color: Colors.brown[700]),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide:
-                                    const BorderSide(color: Colors.brown),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                    color: Colors.brown, width: 2),
-                              ),
-                              filled: true,
-                              fillColor: Colors.brown[50],
-                            ),
-                            value: formData['etat'] ?? 'Libre',
-                            items: ['Libre', 'Occupée'].map((String etat) {
-                              return DropdownMenuItem<String>(
-                                value: etat,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      etat == 'Libre'
-                                          ? MdiIcons.doorOpen
-                                          : MdiIcons.doorClosed,
-                                      color: Colors.brown[700],
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      etat,
-                                      style: const TextStyle(
-                                          color: Colors.black87),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              formData['etat'] = value;
-                            },
-                          ),
-                        ),
-                      ],
-                      // Bouton pour ajouter un logo (uniquement pour Agences)
-                      if (widget.title == 'Agences')
-                        Column(
+                        );
+                      } else if (field['type'] == 'image') {
+                        return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Icon(MdiIcons.image, color: Colors.brown[700]),
-                                const SizedBox(width: 8),
-                                const Text('Logo de l\'agence',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.brown)),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            if (selectedLogoPath != null)
-                              Stack(
-                                children: [
-                                  Container(
+                            Row(children: [
+                              Icon(field['icon'], color: Colors.teal[700]),
+                              SizedBox(width: 8),
+                              Text(field['label'],
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.teal[700]))
+                            ]),
+                            SizedBox(height: 10),
+                            if (selectedLogoPath != null &&
+                                selectedLogoPath!.isNotEmpty)
+                              Stack(children: [
+                                Container(
                                     width: 100,
                                     height: 100,
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Image.file(
-                                        File(selectedLogoPath!),
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return Center(
-                                            child: Icon(
-                                              MdiIcons.alertCircle,
-                                              color: Colors.redAccent,
-                                              size: 40,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    right: 0,
-                                    top: 0,
-                                    child: IconButton(
-                                      icon: Icon(MdiIcons.closeCircle,
-                                          color: Colors.redAccent),
-                                      onPressed: () {
-                                        setState(() {
-                                          selectedLogoPath = null;
-                                          formData['logo'] = null;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            const SizedBox(height: 10),
-                            ElevatedButton.icon(
-                              onPressed: () async {
-                                try {
-                                  final picker = ImagePicker();
-                                  final pickedFile = await picker.pickImage(
-                                      source: ImageSource.gallery);
-                                  if (pickedFile != null) {
-                                    setState(() {
-                                      selectedLogoPath = pickedFile.path;
-                                      formData['logo'] = selectedLogoPath;
-                                    });
-                                  }
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          'Erreur lors du chargement du logo: $e'),
-                                      backgroundColor: Colors.redAccent,
-                                    ),
-                                  );
-                                }
-                              },
-                              icon:
-                                  Icon(MdiIcons.imagePlus, color: Colors.white),
-                              label: const Text('Ajouter un logo',
-                                  style: TextStyle(color: Colors.white)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.brown[600],
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 12),
-                                elevation: 5,
-                                shadowColor: Colors.brown[800],
-                              ),
-                            ),
-                          ],
-                        ),
-                      // Section pour ajouter des photos (uniquement pour Maisons)
-                      if (widget.title == 'Maisons')
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(MdiIcons.imageMultiple,
-                                    color: Colors.brown[700]),
-                                const SizedBox(width: 8),
-                                const Text('Photos',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.brown)),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: photoPaths.map((path) {
-                                return Stack(
-                                  children: [
-                                    Container(
-                                      width: 100,
-                                      height: 100,
-                                      decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(10),
                                         boxShadow: [
                                           BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.2),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: ClipRRect(
+                                              color: Colors.black12,
+                                              blurRadius: 4,
+                                              offset: Offset(0, 2))
+                                        ]),
+                                    child: ClipRRect(
                                         borderRadius: BorderRadius.circular(10),
-                                        child: Image.file(
-                                          File(path),
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                            return Center(
-                                              child: Icon(
-                                                MdiIcons.alertCircle,
-                                                color: Colors.redAccent,
-                                                size: 40,
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      right: 0,
-                                      top: 0,
-                                      child: IconButton(
+                                        child: selectedLogoPath!.startsWith('http')
+                                            ? CachedNetworkImage(
+                                                imageUrl: selectedLogoPath!,
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) => Center(
+                                                    child: CircularProgressIndicator(
+                                                        color:
+                                                            Colors.teal[700])),
+                                                errorWidget: (context, url, error) => Center(
+                                                    child: Icon(
+                                                        MdiIcons.alertCircle,
+                                                        color: Colors.redAccent,
+                                                        size: 40)))
+                                            : Image.file(File(selectedLogoPath!), fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Center(child: Icon(MdiIcons.alertCircle, color: Colors.redAccent, size: 40))))),
+                                Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: IconButton(
                                         icon: Icon(MdiIcons.closeCircle,
                                             color: Colors.redAccent),
-                                        onPressed: () {
-                                          setState(() {
-                                            photoPaths.remove(path);
-                                            formData['photos'] = photoPaths;
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 10),
+                                        onPressed: () => setState(() {
+                                              selectedLogoPath = null;
+                                              formData['logo'] = null;
+                                            })))
+                              ]),
+                            SizedBox(height: 10),
                             ElevatedButton.icon(
-                              onPressed: () async {
-                                try {
-                                  final picker = ImagePicker();
-                                  final pickedFiles =
-                                      await picker.pickMultiImage();
-                                  if (pickedFiles.isNotEmpty) {
-                                    setState(() {
-                                      photoPaths.addAll(
-                                          pickedFiles.map((e) => e.path));
-                                      formData['photos'] = photoPaths;
-                                    });
-                                  }
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          'Erreur lors du chargement des photos: $e'),
-                                      backgroundColor: Colors.redAccent,
-                                    ),
-                                  );
-                                }
-                              },
-                              icon:
-                                  Icon(MdiIcons.imagePlus, color: Colors.white),
-                              label: const Text('Ajouter des photos',
-                                  style: TextStyle(color: Colors.white)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.brown[600],
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 12),
-                                elevation: 5,
-                                shadowColor: Colors.brown[800],
-                              ),
-                            ),
+                                onPressed: () async {
+                                  final status =
+                                      await Permission.photos.request();
+                                  if (status.isGranted) {
+                                    final picker = ImagePicker();
+                                    final pickedFile = await picker.pickImage(
+                                        source: ImageSource.gallery);
+                                    if (pickedFile != null)
+                                      setState(() {
+                                        selectedLogoPath = pickedFile.path;
+                                        formData['logo'] = selectedLogoPath;
+                                      });
+                                  } else
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                            content: Text('Permission refusée'),
+                                            backgroundColor: Colors.redAccent));
+                                },
+                                icon: Icon(MdiIcons.imagePlus,
+                                    color: Colors.white),
+                                label: Text('Ajouter un logo',
+                                    style: TextStyle(color: Colors.white)),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.teal[700],
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                    elevation: 5,
+                                    shadowColor: Colors.teal[900])),
                           ],
-                        ),
-                      const SizedBox(height: 30),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: ElevatedButton.styleFrom(
+                        );
+                      } else {
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 16),
+                          child: TextFormField(
+                            initialValue:
+                                formData[field['name']]?.toString() ?? '',
+                            readOnly: field['readOnly'] == true,
+                            decoration: InputDecoration(
+                                labelText: field['label'],
+                                labelStyle: TextStyle(color: Colors.teal[700]),
+                                prefixIcon: Icon(field['icon'] ?? MdiIcons.text,
+                                    color: Colors.teal[700]),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide:
+                                        BorderSide(color: Colors.teal[700]!)),
+                                focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                        color: Colors.teal[900]!, width: 2)),
+                                filled: true,
+                                fillColor: Colors.teal[50]),
+                            keyboardType: field['type'] == 'number'
+                                ? TextInputType.number
+                                : field['type'] == 'email'
+                                    ? TextInputType.emailAddress
+                                    : TextInputType.text,
+                            onChanged: (value) => formData[field['name']] =
+                                field['type'] == 'number'
+                                    ? num.tryParse(value) ?? 0
+                                    : value,
+                            validator: field['validator'] != null
+                                ? (value) => field['validator']!(value)
+                                : null,
+                          ),
+                        );
+                      }
+                    }).toList(),
+                    SizedBox(height: 30),
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.grey[400],
                               foregroundColor: Colors.black87,
-                              padding: const EdgeInsets.symmetric(
+                              padding: EdgeInsets.symmetric(
                                   horizontal: 30, vertical: 15),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
+                                  borderRadius: BorderRadius.circular(12)),
                               elevation: 5,
-                              shadowColor: Colors.grey[600],
-                              animationDuration:
-                                  const Duration(milliseconds: 300),
-                            ),
-                            child: const Text(
-                              'Annuler',
+                              shadowColor: Colors.grey[600]),
+                          child: Text('Annuler',
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          ElevatedButton(
-                            onPressed: () async {
+                                  fontSize: 16, fontWeight: FontWeight.w600))),
+                      SizedBox(width: 20),
+                      ElevatedButton(
+                          onPressed: () async {
+                            bool? confirm = isEditing
+                                ? await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                            title: Text(
+                                                'Confirmer modification',
+                                                style: TextStyle(
+                                                    color: Colors.teal[700])),
+                                            content: Text(
+                                                'Voulez-vous modifier cet élément ?',
+                                                style: TextStyle(
+                                                    color: Colors.black87)),
+                                            actions: [
+                                              TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, false),
+                                                  child: Text('Non',
+                                                      style: TextStyle(
+                                                          color: Colors
+                                                              .grey[600]))),
+                                              TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, true),
+                                                  child: Text('Oui',
+                                                      style: TextStyle(
+                                                          color: Colors
+                                                              .teal[700])))
+                                            ])).then((value) => value ?? false)
+                                : true;
+                            if (confirm! && _formKey.currentState!.validate()) {
                               try {
-                                if (isEditing) {
+                                if (isEditing)
                                   await widget.service
                                       .update(formData['id'], formData);
-                                } else {
-                                  if (widget.title == 'Maisons' &&
-                                      photoPaths.isNotEmpty) {
-                                    for (var path in photoPaths) {
-                                      final photoData = {
-                                        'url': path,
-                                        'description':
-                                            'Photo de ${widget.title.toLowerCase()}',
-                                        'maison_id': formData['id'],
-                                      };
-                                      await MaisonService().createWithImage(
-                                        photoData,
-                                        imagePath: path,
-                                        imageField: 'url',
-                                      );
-                                    }
-                                  }
-                                  if (widget.title == 'Agences' &&
-                                      selectedLogoPath != null) {
-                                    final logoData = {
-                                      'logo': selectedLogoPath,
-                                      'description': 'Logo de l\'agence',
-                                    };
-                                    await AgenceService().createWithImage(
-                                      logoData,
-                                      imagePath: selectedLogoPath!,
-                                      imageField: 'logo',
-                                    );
-                                  }
+                                else
                                   await widget.service.create(formData);
-                                }
                                 Navigator.pop(context);
                                 fetchItems();
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                    content: Text(
+                                        '${isEditing ? 'Modifié' : 'Ajouté'} avec succès'),
+                                    backgroundColor: Colors.green[600]));
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        'Erreur lors de l\'${isEditing ? 'édition' : 'ajout'}: $e'),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
+                                    SnackBar(
+                                        content: Text('Erreur: $e'),
+                                        backgroundColor: Colors.redAccent));
                               }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(
                                   horizontal: 30, vertical: 15),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
+                                  borderRadius: BorderRadius.circular(12)),
                               elevation: 5,
-                              shadowColor: Colors.brown[800],
-                              animationDuration:
-                                  const Duration(milliseconds: 300),
+                              shadowColor: Colors.teal[900],
                               foregroundColor: Colors.white,
-                              backgroundColor: Colors.brown[600],
-                            ),
-                            child: Text(
-                              isEditing ? 'Modifier' : 'Ajouter',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                              backgroundColor: Colors.teal[700]),
+                          child: Text(isEditing ? 'Modifier' : 'Ajouter',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600))),
+                    ]),
+                  ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   Future<void> _cloturerLocation(int id, int maisonId) async {
-    try {
-      final locationService = LocationService();
-      await locationService.cloturerLocation(id, maisonId);
-      fetchItems();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur lors de la clôture: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+    bool? confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+                title: Text('Clôturer location',
+                    style: TextStyle(color: Colors.red[700])),
+                content: Text('Voulez-vous clôturer cette location ?',
+                    style: TextStyle(color: Colors.black87)),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text('Non',
+                          style: TextStyle(color: Colors.grey[600]))),
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child:
+                          Text('Oui', style: TextStyle(color: Colors.red[700])))
+                ])).then((value) => value ?? false);
+    if (confirm == true) {
+      try {
+        final locationService = LocationService();
+        await locationService.cloturerLocation(id, maisonId);
+        fetchItems();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Location clôturée avec succès'),
+            backgroundColor: Colors.green[600]));
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Erreur: $e'), backgroundColor: Colors.redAccent));
+      }
     }
   }
 
@@ -940,43 +556,31 @@ class _EntityScreenState extends State<EntityScreen> {
       await AuthService().logout();
       Navigator.pushReplacementNamed(context, Routes.login);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur lors de la déconnexion: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Erreur: $e'), backgroundColor: Colors.redAccent));
     }
   }
 
   Widget _buildSidebarItem(IconData icon, String title, VoidCallback onTap,
       [bool isSelected = false]) {
     return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Tooltip(
-        message: title,
-        child: ListTile(
-          leading: Icon(
-            icon,
-            color: isSelected ? Colors.white : Colors.grey[300],
-            size: 26,
-          ),
-          title: Text(
-            title,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey[300],
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              fontSize: 16,
-            ),
-          ),
-          onTap: onTap,
-          tileColor: isSelected ? Colors.brown[600] : null,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      ),
-    );
+        cursor: SystemMouseCursors.click,
+        child: Tooltip(
+            message: title,
+            child: ListTile(
+                leading: Icon(icon,
+                    color: isSelected ? Colors.white : Colors.grey[300],
+                    size: 26),
+                title: Text(title,
+                    style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey[300],
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 16)),
+                onTap: onTap,
+                tileColor: isSelected ? Colors.teal[700] : null,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)))));
   }
 
   @override
@@ -988,107 +592,56 @@ class _EntityScreenState extends State<EntityScreen> {
           Container(
             width: 250,
             height: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.brown[900],
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  offset: Offset(2, 0),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                ListTile(
-                  leading: Icon(
-                    MdiIcons.menu,
-                    color: Colors.white,
-                  ),
-                  title: const Text(
-                    'Menu',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      _buildSidebarItem(
-                        Icons.home,
-                        'Accueil',
-                        () => Navigator.pushNamed(context, Routes.home),
-                      ),
-                      _buildSidebarItem(
-                        Icons.view_agenda,
-                        'Maisons',
-                        () => Navigator.pushNamed(context, Routes.maisons),
-                      ),
-                      _buildSidebarItem(
-                        Icons.business,
-                        'Agences',
-                        () => Navigator.pushNamed(context, Routes.agences),
-                      ),
-                      _buildSidebarItem(
-                        Icons.location_on,
-                        'Locations',
-                        () => Navigator.pushNamed(context, Routes.locations),
-                      ),
-                      _buildSidebarItem(
-                        Icons.payment,
-                        'Paiements',
-                        () => Navigator.pushNamed(context, Routes.paiements),
-                      ),
-                      _buildSidebarItem(
-                        Icons.warning,
-                        'Pénalités',
-                        () => Navigator.pushNamed(context, Routes.penalites),
-                      ),
-                      _buildSidebarItem(
-                        Icons.settings,
-                        'Paramètres',
-                        () => Navigator.pushNamed(context, Routes.parametres),
-                      ),
-                      _buildSidebarItem(
-                        Icons.photo,
-                        'Photos',
-                        () => Navigator.pushNamed(context, Routes.photos),
-                      ),
-                      _buildSidebarItem(
-                        widget.icon,
-                        widget.title,
-                        () => setState(() {}),
-                        true,
-                      ),
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: Tooltip(
-                          message: 'Déconnexion',
-                          child: ListTile(
+            decoration: BoxDecoration(color: Colors.teal[900], boxShadow: [
+              BoxShadow(
+                  color: Colors.black26, blurRadius: 10, offset: Offset(2, 0))
+            ]),
+            child: Column(children: [
+              SizedBox(height: 20),
+              ListTile(
+                  leading: Icon(MdiIcons.menu, color: Colors.white),
+                  title: Text('Menu',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18))),
+              Expanded(
+                  child: ListView(children: [
+                _buildSidebarItem(Icons.home, 'Accueil',
+                    () => Navigator.pushNamed(context, Routes.home)),
+                _buildSidebarItem(Icons.view_agenda, 'Maisons',
+                    () => Navigator.pushNamed(context, Routes.maisons)),
+                _buildSidebarItem(Icons.business, 'Agences',
+                    () => Navigator.pushNamed(context, Routes.agences)),
+                _buildSidebarItem(Icons.location_on, 'Locations',
+                    () => Navigator.pushNamed(context, Routes.locations)),
+                _buildSidebarItem(Icons.payment, 'Paiements',
+                    () => Navigator.pushNamed(context, Routes.paiements)),
+                _buildSidebarItem(Icons.warning, 'Pénalités',
+                    () => Navigator.pushNamed(context, Routes.penalites)),
+                _buildSidebarItem(Icons.settings, 'Paramètres',
+                    () => Navigator.pushNamed(context, Routes.parametres)),
+                _buildSidebarItem(Icons.photo, 'Photos',
+                    () => Navigator.pushNamed(context, Routes.photos)),
+                _buildSidebarItem(
+                    widget.icon, widget.title, () => setState(() {}), true),
+                MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: Tooltip(
+                        message: 'Déconnexion',
+                        child: ListTile(
                             leading:
                                 Icon(Icons.logout, color: Colors.grey[300]),
-                            title: Text(
-                              'Déconnexion',
-                              style: TextStyle(color: Colors.grey[300]),
-                            ),
-                            onTap: _logout,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                            title: Text('Déconnexion',
+                                style: TextStyle(color: Colors.grey[300])),
+                            onTap: _logout))),
+              ])),
+            ]),
           ),
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1098,421 +651,248 @@ class _EntityScreenState extends State<EntityScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(
+                            padding: EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 15),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.brown[600]!,
-                                  Colors.brown[800]!
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
+                                gradient: LinearGradient(colors: [
+                                  Colors.teal[600]!,
+                                  Colors.teal[800]!
+                                ]),
+                                borderRadius: BorderRadius.circular(15),
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 4))
+                                ]),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  widget.title,
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.refresh,
-                                      color: Colors.white),
-                                  onPressed: fetchItems,
-                                ),
-                              ],
-                            ),
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(widget.title,
+                                      style: TextStyle(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white)),
+                                  IconButton(
+                                      icon: Icon(Icons.refresh,
+                                          color: Colors.white),
+                                      onPressed: fetchItems)
+                                ]),
                           ),
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20),
                           isLoading
-                              ? const Center(
+                              ? Center(
                                   child: CircularProgressIndicator(
-                                      color: Colors.brown))
+                                      color: Colors.teal[700]))
                               : errorMessage != null
-                                  ? Center(child: Text(errorMessage!))
+                                  ? Center(
+                                      child: Text(errorMessage!,
+                                          style: TextStyle(
+                                              color: Colors.red[700])))
                                   : items.isEmpty
                                       ? Center(
-                                          child: Column(
-                                            children: [
-                                              const SizedBox(height: 50),
-                                              Icon(
-                                                widget.icon,
-                                                size: 80,
-                                                color: Colors.grey[400],
-                                              ),
-                                              const SizedBox(height: 10),
-                                              Text(
-                                                'Aucune donnée pour le moment',
-                                                style: TextStyle(
+                                          child: Column(children: [
+                                          SizedBox(height: 50),
+                                          Icon(widget.icon,
+                                              size: 80,
+                                              color: Colors.grey[400]),
+                                          SizedBox(height: 10),
+                                          Text('Aucune donnée',
+                                              style: TextStyle(
                                                   fontSize: 18,
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
+                                                  color: Colors.grey[600]))
+                                        ]))
                                       : ListView.builder(
                                           shrinkWrap: true,
                                           physics:
-                                              const NeverScrollableScrollPhysics(),
+                                              NeverScrollableScrollPhysics(),
                                           itemCount: items.length,
                                           itemBuilder: (context, index) {
                                             final item = items[index];
                                             return Card(
-                                              margin:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 8),
+                                              margin: EdgeInsets.symmetric(
+                                                  vertical: 8),
                                               shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(15),
-                                              ),
-                                              elevation: 5,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          15)),
+                                              elevation: 6,
+                                              color: Colors.white,
                                               child: ListTile(
                                                 contentPadding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 20,
-                                                  vertical: 10,
-                                                ),
+                                                    EdgeInsets.symmetric(
+                                                        horizontal: 20,
+                                                        vertical: 10),
                                                 leading: CircleAvatar(
-                                                  backgroundColor:
-                                                      Colors.brown[100],
-                                                  child: Icon(
-                                                    widget.icon,
-                                                    color: Colors.brown,
-                                                  ),
-                                                ),
+                                                    backgroundColor:
+                                                        Colors.teal[100],
+                                                    child: Text('${index + 1}',
+                                                        style: TextStyle(
+                                                            color: Colors
+                                                                .teal[900],
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .bold))),
                                                 title: Text(
-                                                  item['nom'] ??
-                                                      item['numero'] ??
-                                                      'Sans nom',
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 18,
-                                                    color: Colors.brown,
-                                                  ),
-                                                ),
-                                                subtitle: Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          top: 5),
-                                                  child: Column(
+                                                    item['nom']?.toString() ??
+                                                        item['locataire']
+                                                            ?.toString() ??
+                                                        'Sans nom',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 18,
+                                                        color:
+                                                            Colors.teal[900])),
+                                                subtitle: Column(
                                                     crossAxisAlignment:
                                                         CrossAxisAlignment
                                                             .start,
-                                                    children: [
-                                                      ...widget.fields
-                                                          .where((field) =>
-                                                              field['name'] !=
-                                                                  'latitude' &&
-                                                              field['name'] !=
-                                                                  'longitude' &&
-                                                              field['name'] !=
-                                                                  'latitude_degrees' &&
-                                                              field['name'] !=
-                                                                  'latitude_minutes' &&
-                                                              field['name'] !=
-                                                                  'latitude_seconds' &&
-                                                              field['name'] !=
-                                                                  'longitude_degrees' &&
-                                                              field['name'] !=
-                                                                  'longitude_minutes' &&
-                                                              field['name'] !=
-                                                                  'longitude_seconds' &&
-                                                              (widget.title ==
-                                                                      'Maisons'
-                                                                  ? (field[
-                                                                              'name'] !=
-                                                                          'type_document_id' &&
-                                                                      field['name'] !=
-                                                                          'commodite_id' &&
-                                                                      field['name'] !=
-                                                                          'coordonnees')
-                                                                  : true) &&
-                                                              (widget.title ==
-                                                                          'Locations' ||
-                                                                      widget.title ==
-                                                                          'Agences'
-                                                                  ? field['name'] !=
-                                                                      'coordonnees'
-                                                                  : true))
-                                                          .map((field) {
-                                                        if (field['name'] ==
-                                                                'nom' ||
-                                                            field['name'] ==
-                                                                'numero') {
-                                                          return const SizedBox
-                                                              .shrink();
-                                                        } else if (field[
-                                                                'type'] ==
-                                                            'dropdown') {
-                                                          final options =
-                                                              optionsCache[field[
-                                                                      'options_endpoint']] ??
-                                                                  [];
-                                                          final selectedOption =
-                                                              options
-                                                                  .firstWhere(
-                                                            (option) =>
-                                                                option['id'] ==
-                                                                item[field[
-                                                                        'name']]
-                                                                    ?.toString(),
-                                                            orElse: () => {
-                                                              'label': 'N/A'
-                                                            },
-                                                          );
-                                                          return Text(
-                                                            '${field['label']}: ${selectedOption['label']}',
-                                                            style: TextStyle(
-                                                              color: Colors
-                                                                  .grey[600],
-                                                              fontSize: 14,
-                                                            ),
-                                                          );
-                                                        } else {
-                                                          return Text(
-                                                            '${field['label']}: ${item[field['name']] ?? 'N/A'}',
-                                                            style: TextStyle(
-                                                              color: Colors
-                                                                  .grey[600],
-                                                              fontSize: 14,
-                                                            ),
-                                                          );
-                                                        }
-                                                      }),
-                                                      if (widget.title ==
-                                                          'Maisons') ...[
-                                                        Text(
-                                                          'Loyer: ${item['loyer'] ?? 'N/A'}',
-                                                          style: TextStyle(
-                                                            color: Colors
-                                                                .grey[600],
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                        Text(
-                                                          'État: ${item['etat'] ?? 'N/A'}',
-                                                          style: TextStyle(
-                                                            color: Colors
-                                                                .grey[600],
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ],
-                                                  ),
-                                                ),
-                                                onTap: widget.title == 'Agences'
-                                                    ? () {
-                                                        setState(() {
-                                                          selectedAgence = item;
-                                                        });
-                                                      }
-                                                    : null,
+                                                    children: widget.fields
+                                                        .where((field) => ![
+                                                              'nom',
+                                                              'logo'
+                                                            ].contains(
+                                                                field['name']))
+                                                        .map((field) => Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                    top: 4),
+                                                            child: Text(
+                                                                '${field['label']}: ${item[field['name']]?.toString() ?? 'N/A'}',
+                                                                style: TextStyle(
+                                                                    color: Colors.grey[700],
+                                                                    fontSize: 14))))
+                                                        .toList()),
+                                                onTap: () => setState(
+                                                    () => selectedItem = item),
                                                 trailing: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    if (widget.title ==
-                                                        'Locations')
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
                                                       IconButton(
-                                                        icon: const Icon(
-                                                            Icons.close,
-                                                            color: Colors.red),
-                                                        onPressed: () =>
-                                                            _cloturerLocation(
-                                                                item['id'],
-                                                                item[
-                                                                    'maison_id']),
-                                                        tooltip:
-                                                            'Clôturer Location',
-                                                      ),
-                                                    IconButton(
-                                                      icon: const Icon(
-                                                          Icons.edit,
-                                                          color: Colors
-                                                              .blueAccent),
-                                                      onPressed: () =>
-                                                          _showFormDialog(
-                                                              item: item),
-                                                    ),
-                                                    IconButton(
-                                                      icon: const Icon(
-                                                          Icons.delete,
-                                                          color:
-                                                              Colors.redAccent),
-                                                      onPressed: () =>
-                                                          _deleteItem(
-                                                              item['id']),
-                                                    ),
-                                                  ],
-                                                ),
+                                                          icon: Icon(Icons.edit,
+                                                              color: Colors
+                                                                  .blue[700]),
+                                                          onPressed: () =>
+                                                              _showFormDialog(
+                                                                  item: item)),
+                                                      if (widget.title ==
+                                                              'Locations' &&
+                                                          item['active'] ==
+                                                              true)
+                                                        IconButton(
+                                                          icon: Icon(
+                                                              MdiIcons.closeBox,
+                                                              color: Colors
+                                                                  .orange[700]),
+                                                          onPressed: () =>
+                                                              _cloturerLocation(
+                                                                  item['id'],
+                                                                  item[
+                                                                      'maison_id']),
+                                                        ),
+                                                      IconButton(
+                                                          icon: Icon(
+                                                              Icons.delete,
+                                                              color: Colors
+                                                                  .red[700]),
+                                                          onPressed: () =>
+                                                              _deleteItem(
+                                                                  item['id'])),
+                                                    ]),
                                               ),
                                             );
                                           },
                                         ),
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20),
                           Center(
                             child: ElevatedButton.icon(
                               onPressed: () => _showFormDialog(),
-                              icon: Icon(MdiIcons.plus, size: 20),
-                              label: Text(
-                                'Ajouter ${widget.title}',
-                                style: const TextStyle(fontSize: 16),
-                              ),
+                              icon: Icon(MdiIcons.plus,
+                                  size: 20, color: Colors.white),
+                              label: Text('Ajouter ${widget.title}',
+                                  style: TextStyle(
+                                      fontSize: 16, color: Colors.white)),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.brown[600],
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 25, vertical: 15),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 5,
-                                shadowColor: Colors.brown[800],
-                              ),
+                                  backgroundColor: Colors.teal[700],
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 25, vertical: 15),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                  elevation: 5,
+                                  shadowColor: Colors.teal[900]),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    if (widget.title == 'Agences' && selectedAgence != null)
+                    if (selectedItem != null)
                       Expanded(
                         flex: 1,
                         child: Padding(
-                          padding: const EdgeInsets.only(left: 16),
+                          padding: EdgeInsets.only(left: 16),
                           child: Card(
-                            elevation: 5,
+                            elevation: 6,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
+                                borderRadius: BorderRadius.circular(15)),
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: EdgeInsets.all(16),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        'Détails de l\'agence',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.brown,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: Icon(MdiIcons.close,
-                                            color: Colors.grey),
-                                        onPressed: () {
-                                          setState(() {
-                                            selectedAgence = null;
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  if (selectedAgence!['logo'] != null)
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Image.file(
-                                        File(selectedAgence!['logo']),
-                                        width: 100,
-                                        height: 100,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return Center(
-                                            child: Icon(
-                                              MdiIcons.alertCircle,
-                                              color: Colors.redAccent,
-                                              size: 40,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    'Nom: ${selectedAgence!['nom'] ?? 'N/A'}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Immatriculation: ${selectedAgence!['immatriculation'] ?? 'N/A'}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  ...widget.fields
-                                      .where((field) =>
-                                          field['name'] != 'nom' &&
-                                          field['name'] != 'immatriculation' &&
-                                          field['name'] != 'latitude' &&
-                                          field['name'] != 'longitude' &&
-                                          field['name'] != 'latitude_degrees' &&
-                                          field['name'] != 'latitude_minutes' &&
-                                          field['name'] != 'latitude_seconds' &&
-                                          field['name'] !=
-                                              'longitude_degrees' &&
-                                          field['name'] !=
-                                              'longitude_minutes' &&
-                                          field['name'] !=
-                                              'longitude_seconds' &&
-                                          field['name'] != 'type_document_id' &&
-                                          field['name'] != 'commodite_id' &&
-                                          field['name'] != 'photos' &&
-                                          field['name'] != 'logo' &&
-                                          field['name'] != 'coordonnees')
-                                      .map((field) {
-                                    if (field['type'] == 'dropdown') {
-                                      final options = optionsCache[
-                                              field['options_endpoint']] ??
-                                          [];
-                                      final selectedOption = options.firstWhere(
-                                        (option) =>
-                                            option['id'] ==
-                                            selectedAgence![field['name']]
-                                                ?.toString(),
-                                        orElse: () => {'label': 'N/A'},
-                                      );
-                                      return Text(
-                                        '${field['label']}: ${selectedOption['label']}',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black87,
-                                        ),
-                                      );
-                                    }
-                                    return Text(
-                                      '${field['label']}: ${selectedAgence![field['name']] ?? 'N/A'}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black87,
-                                      ),
-                                    );
-                                  }),
-                                ],
-                              ),
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                              'Détails de l\'${widget.title.toLowerCase()}',
+                                              style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.teal[700])),
+                                          IconButton(
+                                              icon: Icon(MdiIcons.close,
+                                                  color: Colors.grey[600]),
+                                              onPressed: () => setState(
+                                                  () => selectedItem = null))
+                                        ]),
+                                    SizedBox(height: 10),
+                                    if (selectedItem!['logo'] != null &&
+                                        selectedItem!['logo']
+                                            .toString()
+                                            .isNotEmpty)
+                                      ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          child: CachedNetworkImage(
+                                              imageUrl: selectedItem!['logo']
+                                                  .toString(),
+                                              width: 100,
+                                              height: 100,
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) => Center(
+                                                  child: CircularProgressIndicator(
+                                                      color: Colors.teal[700])),
+                                              errorWidget: (context, url,
+                                                      error) =>
+                                                  Center(
+                                                      child: Icon(
+                                                          MdiIcons.alertCircle,
+                                                          color:
+                                                              Colors.redAccent,
+                                                          size: 40)))),
+                                    SizedBox(height: 10),
+                                    ...widget.fields
+                                        .where((field) =>
+                                            !['logo'].contains(field['name']))
+                                        .map((field) => Text(
+                                            '${field['label']}: ${selectedItem![field['name']]?.toString() ?? 'N/A'}',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.black87))),
+                                  ]),
                             ),
                           ),
                         ),

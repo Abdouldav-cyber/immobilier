@@ -26,6 +26,18 @@ class MaisonsScreen extends EntityScreen {
               'label': 'Lien Google Maps',
               'type': 'text',
               'icon': Icons.link,
+              'validator': (value) {
+                if (value != null && value.isNotEmpty) {
+                  final urlPattern = RegExp(
+                    r'^(https?|ftp)://[^\s/$.?#].[^\s]*$',
+                    caseSensitive: false,
+                  );
+                  if (!urlPattern.hasMatch(value)) {
+                    return 'Veuillez entrer une URL valide';
+                  }
+                }
+                return null;
+              },
             },
             {
               'name': 'latitude_degrees',
@@ -71,31 +83,29 @@ class MaisonsScreen extends EntityScreen {
               'options_endpoint': 'agences',
             },
             {
-              'name': 'immatriculation',
-              'label': 'Immatriculation',
+              'name': 'coordonnees_point',
+              'label': 'Coordonnées du point',
               'type': 'text',
-              'icon': Icons.fingerprint,
-              'readOnly': true, // Ce champ sera généré automatiquement
+              'icon': Icons.location_pin,
+              'validator': (value) {
+                if (value != null && value.isNotEmpty) {
+                  final coordPattern = RegExp(r'^-?\d+\.?\d*, -?\d+\.?\d*$');
+                  if (!coordPattern.hasMatch(value)) {
+                    return 'Format attendu : latitude, longitude (ex: 48.8566, 2.3522)';
+                  }
+                }
+                return null;
+              },
             },
             {
-              'name': 'type_document_ids',
-              'label': 'Types de Documents',
-              'type': 'multi_select',
-              'icon': Icons.description,
-              'options_endpoint': 'type_documents',
-            },
-            {
-              'name': 'commodite_ids',
-              'label': 'Commodités',
-              'type': 'multi_select',
-              'icon': Icons.checklist,
-              'options_endpoint': 'commodites',
-            },
-            {
-              'name': 'photos',
-              'label': 'Photos',
-              'type': 'photo_list',
-              'icon': Icons.photo,
+              'name': 'etat',
+              'label': 'État de la maison',
+              'type': 'dropdown',
+              'icon': Icons.info,
+              'options': [
+                {'id': 'LIBRE', 'label': 'LIBRE'},
+                {'id': 'OCCUPEE', 'label': 'OCCUPEE'},
+              ],
             },
           ],
           icon: Icons.home,
