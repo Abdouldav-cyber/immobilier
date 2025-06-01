@@ -7,7 +7,7 @@ class Routes {
   static const String penalites = '/penalites';
   static const String photos = '/photos';
   static const String parametres = '/parametres';
-
-  static const String login = '/login'; // Ajout de cette ligne
+  static const String login = '/login';
+  // Ajout de cette ligne
   // Autres routes existantes (comme communes, commodites, etc., si présentes)
 }

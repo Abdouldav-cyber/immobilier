@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gestion_immo/core/config/constants/routes.dart';
 import 'package:gestion_immo/data/services/location_service.dart';
 import 'package:gestion_immo/features/entity_screen.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 class LocationsScreen extends EntityScreen {
   LocationsScreen({super.key})
@@ -39,6 +40,31 @@ class LocationsScreen extends EntityScreen {
               'label': 'Montant du loyer',
               'type': 'number',
               'icon': Icons.attach_money,
+            },
+            // Nouveaux champs ajoutés
+            {
+              'name': 'date',
+              'label': 'Date',
+              'type': 'date',
+              'icon': MdiIcons.calendar,
+            },
+            {
+              'name': 'type_document',
+              'label': 'Type de document',
+              'type': 'dropdown',
+              'icon': MdiIcons.fileDocument,
+            },
+            {
+              'name': 'nom_client',
+              'label': 'Nom du client',
+              'type': 'text',
+              'icon': MdiIcons.account,
+            },
+            {
+              'name': 'prenom_client',
+              'label': 'Prénom du client',
+              'type': 'text',
+              'icon': MdiIcons.account,
             },
           ],
           icon: Icons.location_on,

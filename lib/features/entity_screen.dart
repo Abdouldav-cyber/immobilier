@@ -42,6 +42,7 @@ class _EntityScreenState extends State<EntityScreen> {
   Map<String, dynamic>? selectedItem;
   DateTime? selectedDateDebut;
   DateTime? selectedDateFin;
+  DateTime? selectedDate;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
@@ -243,224 +244,317 @@ class _EntityScreenState extends State<EntityScreen> {
     selectedDateFin = formData['date_fin'] != null
         ? DateTime.parse(formData['date_fin'])
         : null;
+    selectedDate =
+        formData['date'] != null ? DateTime.parse(formData['date']) : null;
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.grey[50],
-        content: StatefulBuilder(
-          builder: (context, setState) => Container(
-            padding: EdgeInsets.all(20),
-            constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.8,
-                maxHeight: MediaQuery.of(context).size.height * 0.8),
-            child: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        elevation: 10,
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          width: MediaQuery.of(context).size.width * 0.9,
+          constraints: BoxConstraints(
+            minWidth: 400,
+            maxWidth: 800,
+            minHeight: 300,
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setState) => SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
                             isEditing
                                 ? 'Modifier ${widget.title}'
                                 : 'Ajouter ${widget.title}',
                             style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.teal[700])),
-                        IconButton(
-                            icon: Icon(MdiIcons.close, color: Colors.grey[600]),
-                            onPressed: () => Navigator.pop(context)),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    ...widget.fields
-                        .where((field) => ![
-                              'latitude',
-                              'longitude',
-                              'latitude_degrees',
-                              'latitude_minutes',
-                              'latitude_seconds',
-                              'longitude_degrees',
-                              'longitude_minutes',
-                              'longitude_seconds'
-                            ].contains(field['name']))
-                        .map((field) {
-                      if (field['type'] == 'dropdown') {
-                        final options =
-                            optionsCache[field['options_endpoint']] ?? [];
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 16),
-                          child: DropdownButtonFormField<String>(
-                            decoration: InputDecoration(
-                              labelText: field['label'],
-                              labelStyle: TextStyle(color: Colors.teal[700]),
-                              prefixIcon:
-                                  Icon(field['icon'], color: Colors.teal[700]),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide:
-                                      BorderSide(color: Colors.teal[700]!)),
-                              focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                      color: Colors.teal[900]!, width: 2)),
-                              filled: true,
-                              fillColor: Colors.teal[50],
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.indigo[900],
                             ),
-                            value: formData[field['name']]?.toString(),
-                            items: options
-                                .map((option) => DropdownMenuItem<String>(
-                                    value: option['id'],
-                                    child: Text(option['label'],
-                                        style:
-                                            TextStyle(color: Colors.black87))))
-                                .toList(),
-                            onChanged: (value) =>
-                                formData[field['name']] = value,
                           ),
-                        );
-                      } else if (field['type'] == 'date') {
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 16),
-                          child: GestureDetector(
-                            onTap: () async {
-                              final picked = await showDatePicker(
+                          IconButton(
+                            icon: Icon(MdiIcons.close,
+                                color: Colors.grey[700], size: 28),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      ...widget.fields
+                          .where((field) => ![
+                                'latitude',
+                                'longitude',
+                                'latitude_degrees',
+                                'latitude_minutes',
+                                'latitude_seconds',
+                                'longitude_degrees',
+                                'longitude_minutes',
+                                'longitude_seconds'
+                              ].contains(field['name']))
+                          .map((field) {
+                        if (field['type'] == 'dropdown') {
+                          final options =
+                              optionsCache[field['options_endpoint']] ?? [];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: field['label'],
+                                labelStyle: TextStyle(
+                                    color: Colors.indigo[900], fontSize: 16),
+                                prefixIcon: Icon(field['icon'],
+                                    color: Colors.indigo[700], size: 24),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide:
+                                      BorderSide(color: Colors.indigo[200]!),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(
+                                      color: Colors.indigo[900]!, width: 2),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide:
+                                      BorderSide(color: Colors.indigo[200]!),
+                                ),
+                                filled: true,
+                                fillColor: Colors.indigo[50],
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 16),
+                              ),
+                              value: formData[field['name']]?.toString(),
+                              items: options
+                                  .map((option) => DropdownMenuItem<String>(
+                                        value: option['id'],
+                                        child: Text(option['label'],
+                                            style: TextStyle(
+                                                color: Colors.black87,
+                                                fontSize: 16)),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) =>
+                                  formData[field['name']] = value,
+                              dropdownColor: Colors.white,
+                              icon: Icon(MdiIcons.chevronDown,
+                                  color: Colors.indigo[700], size: 24),
+                              style: TextStyle(
+                                  color: Colors.black87, fontSize: 16),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          );
+                        } else if (field['type'] == 'date') {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: GestureDetector(
+                              onTap: () async {
+                                final picked = await showDatePicker(
                                   context: context,
                                   initialDate: DateTime.now(),
                                   firstDate: DateTime(2000),
-                                  lastDate: DateTime(2100));
-                              if (picked != null) {
-                                setState(() {
-                                  if (field['name'] == 'date_debut') {
-                                    selectedDateDebut = picked;
-                                    formData['date_debut'] =
-                                        picked.toIso8601String();
-                                  } else {
-                                    selectedDateFin = picked;
-                                    formData['date_fin'] =
-                                        picked.toIso8601String();
-                                  }
-                                });
-                              }
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.teal[700]!),
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: Colors.teal[50]),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                              child: Row(
-                                children: [
-                                  Icon(MdiIcons.calendar,
-                                      color: Colors.teal[700]),
-                                  SizedBox(width: 8),
-                                  Text(
+                                  lastDate: DateTime(2100),
+                                  builder: (context, child) => Theme(
+                                    data: ThemeData.light().copyWith(
+                                      primaryColor: Colors.indigo[700],
+                                      colorScheme: ColorScheme.light(
+                                          primary: Colors.indigo[700]!),
+                                      buttonTheme: ButtonThemeData(
+                                          textTheme: ButtonTextTheme.primary),
+                                    ),
+                                    child: child!,
+                                  ),
+                                );
+                                if (picked != null) {
+                                  setState(() {
+                                    if (field['name'] == 'date_debut') {
+                                      selectedDateDebut = picked;
+                                      formData['date_debut'] =
+                                          picked.toIso8601String();
+                                    } else if (field['name'] == 'date_fin') {
+                                      selectedDateFin = picked;
+                                      formData['date_fin'] =
+                                          picked.toIso8601String();
+                                    } else if (field['name'] == 'date') {
+                                      selectedDate = picked;
+                                      formData['date'] =
+                                          picked.toIso8601String();
+                                    }
+                                  });
+                                }
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border:
+                                      Border.all(color: Colors.indigo[200]!),
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: Colors.indigo[50],
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 16),
+                                child: Row(
+                                  children: [
+                                    Icon(MdiIcons.calendar,
+                                        color: Colors.indigo[700], size: 24),
+                                    const SizedBox(width: 12),
+                                    Text(
                                       field['name'] == 'date_debut'
                                           ? (selectedDateDebut != null
                                               ? '${selectedDateDebut!.day}/${selectedDateDebut!.month}/${selectedDateDebut!.year}'
                                               : 'Sélectionner Date Début')
-                                          : (selectedDateFin != null
-                                              ? '${selectedDateFin!.day}/${selectedDateFin!.month}/${selectedDateFin!.year}'
-                                              : 'Sélectionner Date Fin'),
+                                          : field['name'] == 'date_fin'
+                                              ? (selectedDateFin != null
+                                                  ? '${selectedDateFin!.day}/${selectedDateFin!.month}/${selectedDateFin!.year}'
+                                                  : 'Sélectionner Date Fin')
+                                              : (selectedDate != null
+                                                  ? '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'
+                                                  : 'Sélectionner Date'),
                                       style: TextStyle(
-                                          color: Colors.black87, fontSize: 16)),
-                                ],
+                                          color: Colors.black87, fontSize: 16),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      } else if (field['type'] == 'image') {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(children: [
-                              Icon(field['icon'], color: Colors.teal[700]),
-                              SizedBox(width: 8),
-                              Text(field['label'],
-                                  style: TextStyle(
-                                      fontSize: 16,
+                          );
+                        } else if (field['type'] == 'image') {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(field['icon'],
+                                      color: Colors.indigo[700], size: 24),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    field['label'],
+                                    style: TextStyle(
+                                      fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.teal[700]))
-                            ]),
-                            SizedBox(height: 10),
-                            if (widget.title == 'Agences' &&
-                                selectedLogoPath != null &&
-                                selectedLogoPath!.isNotEmpty)
-                              Stack(children: [
-                                Container(
-                                    width: 100,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(10),
+                                      color: Colors.indigo[900],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              if (widget.title == 'Agences' &&
+                                  selectedLogoPath != null &&
+                                  selectedLogoPath!.isNotEmpty)
+                                Stack(
+                                  children: [
+                                    Container(
+                                      width: 120,
+                                      height: 120,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
                                         boxShadow: [
                                           BoxShadow(
-                                              color: Colors.black12,
-                                              blurRadius: 4,
-                                              offset: Offset(0, 2))
-                                        ]),
-                                    child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: selectedLogoPath!.startsWith('http')
+                                            color: Colors.black12,
+                                            blurRadius: 6,
+                                            offset: Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: selectedLogoPath!
+                                                .startsWith('http')
                                             ? CachedNetworkImage(
                                                 imageUrl: selectedLogoPath!,
                                                 fit: BoxFit.cover,
-                                                placeholder: (context, url) => Center(
-                                                    child: CircularProgressIndicator(
-                                                        color:
-                                                            Colors.teal[700])),
-                                                errorWidget: (context, url, error) => Center(
-                                                    child: Icon(
-                                                        MdiIcons.alertCircle,
-                                                        color: Colors.redAccent,
-                                                        size: 40)))
-                                            : Image.file(File(selectedLogoPath!), fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Center(child: Icon(MdiIcons.alertCircle, color: Colors.redAccent, size: 40))))),
-                                Positioned(
-                                    right: 0,
-                                    top: 0,
-                                    child: IconButton(
+                                                placeholder: (context, url) =>
+                                                    Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                                color: Colors
+                                                                        .indigo[
+                                                                    700])),
+                                                errorWidget: (context, url,
+                                                        error) =>
+                                                    Center(
+                                                        child: Icon(
+                                                            MdiIcons
+                                                                .alertCircle,
+                                                            color: Colors
+                                                                .redAccent,
+                                                            size: 40)),
+                                              )
+                                            : Image.file(
+                                                File(selectedLogoPath!),
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error,
+                                                        stackTrace) =>
+                                                    Center(
+                                                        child: Icon(
+                                                            MdiIcons
+                                                                .alertCircle,
+                                                            color: Colors
+                                                                .redAccent,
+                                                            size: 40)),
+                                              ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      right: 0,
+                                      top: 0,
+                                      child: IconButton(
                                         icon: Icon(MdiIcons.closeCircle,
-                                            color: Colors.redAccent),
+                                            color: Colors.redAccent, size: 28),
                                         onPressed: () => setState(() {
-                                              selectedLogoPath = null;
-                                              formData['logo'] = null;
-                                            })))
-                              ]),
-                            if (widget.title == 'Maisons' &&
-                                selectedPhotoPaths != null &&
-                                selectedPhotoPaths!.isNotEmpty) ...[
-                              SizedBox(
-                                height: 100,
-                                child: ListView.builder(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: selectedPhotoPaths!.length,
-                                  itemBuilder: (context, index) {
-                                    return Padding(
-                                      padding: EdgeInsets.only(right: 8),
-                                      child: Stack(
-                                        children: [
-                                          Container(
-                                            width: 100,
-                                            height: 100,
-                                            decoration: BoxDecoration(
+                                          selectedLogoPath = null;
+                                          formData['logo'] = null;
+                                        }),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              if (widget.title == 'Maisons' &&
+                                  selectedPhotoPaths != null &&
+                                  selectedPhotoPaths!.isNotEmpty) ...[
+                                SizedBox(
+                                  height: 120,
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: selectedPhotoPaths!.length,
+                                    itemBuilder: (context, index) {
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 12),
+                                        child: Stack(
+                                          children: [
+                                            Container(
+                                              width: 120,
+                                              height: 120,
+                                              decoration: BoxDecoration(
                                                 borderRadius:
-                                                    BorderRadius.circular(10),
+                                                    BorderRadius.circular(16),
                                                 boxShadow: [
                                                   BoxShadow(
-                                                      color: Colors.black12,
-                                                      blurRadius: 4,
-                                                      offset: Offset(0, 2))
-                                                ]),
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              child: Image.file(
+                                                    color: Colors.black12,
+                                                    blurRadius: 6,
+                                                    offset: Offset(0, 3),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                child: Image.file(
                                                   File(selectedPhotoPaths![
                                                       index]),
                                                   fit: BoxFit.cover,
@@ -472,267 +566,383 @@ class _EntityScreenState extends State<EntityScreen> {
                                                                   .alertCircle,
                                                               color: Colors
                                                                   .redAccent,
-                                                              size: 40))),
+                                                              size: 40)),
+                                                ),
+                                              ),
                                             ),
-                                          ),
-                                          Positioned(
+                                            Positioned(
                                               right: 0,
                                               top: 0,
                                               child: IconButton(
-                                                  icon: Icon(
-                                                      MdiIcons.closeCircle,
-                                                      color: Colors.redAccent),
-                                                  onPressed: () => setState(() {
-                                                        selectedPhotoPaths!
-                                                            .removeAt(index);
-                                                        formData['photos'] =
-                                                            selectedPhotoPaths;
-                                                      }))),
-                                        ],
-                                      ),
-                                    );
-                                  },
+                                                icon: Icon(MdiIcons.closeCircle,
+                                                    color: Colors.redAccent,
+                                                    size: 28),
+                                                onPressed: () => setState(() {
+                                                  selectedPhotoPaths!
+                                                      .removeAt(index);
+                                                  formData['photos'] =
+                                                      selectedPhotoPaths;
+                                                }),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
+                              ],
+                              const SizedBox(height: 12),
+                              if (widget.title == 'Agences')
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    await _pickImage(isLogo: true);
+                                    if (selectedLogoPath != null) {
+                                      formData['logo'] = selectedLogoPath;
+                                    }
+                                  },
+                                  icon: Icon(MdiIcons.imagePlus,
+                                      color: Colors.white, size: 20),
+                                  label: Text('Ajouter un logo',
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 16)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.indigo[700],
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 14),
+                                    elevation: 6,
+                                    shadowColor: Colors.indigo[900],
+                                  ),
+                                ),
+                              if (widget.title == 'Maisons')
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    await _pickImage(isLogo: false);
+                                    if (selectedPhotoPaths != null) {
+                                      formData['photos'] = selectedPhotoPaths;
+                                    }
+                                  },
+                                  icon: Icon(MdiIcons.imageMultiple,
+                                      color: Colors.white, size: 20),
+                                  label: Text('Ajouter des photos',
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 16)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.indigo[700],
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 14),
+                                    elevation: 6,
+                                    shadowColor: Colors.indigo[900],
+                                  ),
+                                ),
+                              if (widget.title == 'Photos')
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    await _pickImage(isLogo: true);
+                                    if (selectedLogoPath != null) {
+                                      formData['photo'] = selectedLogoPath;
+                                    }
+                                  },
+                                  icon: Icon(MdiIcons.imagePlus,
+                                      color: Colors.white, size: 20),
+                                  label: Text('Charger une photo',
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 16)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.indigo[700],
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 14),
+                                    elevation: 6,
+                                    shadowColor: Colors.indigo[900],
+                                  ),
+                                ),
                             ],
-                            SizedBox(height: 10),
-                            if (widget.title == 'Agences')
-                              ElevatedButton.icon(
-                                onPressed: () async {
-                                  await _pickImage(isLogo: true);
-                                  if (selectedLogoPath != null) {
-                                    formData['logo'] = selectedLogoPath;
-                                  }
-                                },
-                                icon: Icon(MdiIcons.imagePlus,
-                                    color: Colors.white),
-                                label: Text('Ajouter un logo',
-                                    style: TextStyle(color: Colors.white)),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.teal[700],
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 12),
-                                    elevation: 5,
-                                    shadowColor: Colors.teal[900]),
-                              ),
-                            if (widget.title == 'Maisons')
-                              ElevatedButton.icon(
-                                onPressed: () async {
-                                  await _pickImage(isLogo: false);
-                                  if (selectedPhotoPaths != null) {
-                                    formData['photos'] = selectedPhotoPaths;
-                                  }
-                                },
-                                icon: Icon(MdiIcons.imageMultiple,
-                                    color: Colors.white),
-                                label: Text('Ajouter des photos',
-                                    style: TextStyle(color: Colors.white)),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.teal[700],
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 12),
-                                    elevation: 5,
-                                    shadowColor: Colors.teal[900]),
-                              ),
-                            if (widget.title == 'Photos')
-                              ElevatedButton.icon(
-                                onPressed: () async {
-                                  await _pickImage(isLogo: true);
-                                  if (selectedLogoPath != null) {
-                                    formData['photo'] = selectedLogoPath;
-                                  }
-                                },
-                                icon: Icon(MdiIcons.imagePlus,
-                                    color: Colors.white),
-                                label: Text('Charger une photo',
-                                    style: TextStyle(color: Colors.white)),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.teal[700],
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 12),
-                                    elevation: 5,
-                                    shadowColor: Colors.teal[900]),
-                              ),
-                          ],
-                        );
-                      } else if (field['name'] == 'etat_maison' &&
-                          widget.title == 'Maisons') {
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 16),
-                          child: DropdownButtonFormField<String>(
-                            decoration: InputDecoration(
-                              labelText: field['label'],
-                              labelStyle: TextStyle(color: Colors.teal[700]),
-                              prefixIcon:
-                                  Icon(MdiIcons.home, color: Colors.teal[700]),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide:
-                                      BorderSide(color: Colors.teal[700]!)),
-                              focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                      color: Colors.teal[900]!, width: 2)),
-                              filled: true,
-                              fillColor: Colors.teal[50],
-                            ),
-                            value: formData[field['name']]?.toString(),
-                            items: ['Disponible', 'Occupé', 'En maintenance']
-                                .map((state) => DropdownMenuItem<String>(
-                                    value: state,
-                                    child: Text(state,
-                                        style:
-                                            TextStyle(color: Colors.black87))))
-                                .toList(),
-                            onChanged: (value) =>
-                                formData[field['name']] = value,
-                          ),
-                        );
-                      } else {
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 16),
-                          child: TextFormField(
-                            initialValue:
-                                formData[field['name']]?.toString() ?? '',
-                            readOnly: field['readOnly'] == true,
-                            decoration: InputDecoration(
+                          );
+                        } else if (field['name'] == 'etat_maison' &&
+                            widget.title == 'Maisons') {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
                                 labelText: field['label'],
-                                labelStyle: TextStyle(color: Colors.teal[700]),
-                                prefixIcon: Icon(field['icon'] ?? MdiIcons.text,
-                                    color: Colors.teal[700]),
+                                labelStyle: TextStyle(
+                                    color: Colors.indigo[900], fontSize: 16),
+                                prefixIcon: Icon(MdiIcons.home,
+                                    color: Colors.indigo[700], size: 24),
                                 border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide:
-                                        BorderSide(color: Colors.teal[700]!)),
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide:
+                                      BorderSide(color: Colors.indigo[200]!),
+                                ),
                                 focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                        color: Colors.teal[900]!, width: 2)),
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(
+                                      color: Colors.indigo[900]!, width: 2),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide:
+                                      BorderSide(color: Colors.indigo[200]!),
+                                ),
                                 filled: true,
-                                fillColor: Colors.teal[50]),
-                            keyboardType: field['type'] == 'number'
-                                ? TextInputType.number
-                                : field['type'] == 'email'
-                                    ? TextInputType.emailAddress
-                                    : TextInputType.text,
-                            onChanged: (value) => formData[field['name']] =
-                                field['type'] == 'number'
-                                    ? num.tryParse(value) ?? 0
-                                    : value,
-                            validator: field['validator'] != null
-                                ? (value) => field['validator']!(value)
-                                : null,
-                          ),
-                        );
-                      }
-                    }).toList(),
-                    SizedBox(height: 30),
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey[400],
+                                fillColor: Colors.indigo[50],
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 16),
+                              ),
+                              value: formData[field['name']]?.toString(),
+                              items: ['Disponible', 'Occupé', 'En maintenance']
+                                  .map((state) => DropdownMenuItem<String>(
+                                        value: state,
+                                        child: Text(state,
+                                            style: TextStyle(
+                                                color: Colors.black87,
+                                                fontSize: 16)),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) =>
+                                  formData[field['name']] = value,
+                              dropdownColor: Colors.white,
+                              icon: Icon(MdiIcons.chevronDown,
+                                  color: Colors.indigo[700], size: 24),
+                              style: TextStyle(
+                                  color: Colors.black87, fontSize: 16),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          );
+                        } else if (field['name'] == 'type_document' &&
+                            widget.title == 'Locations') {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: field['label'],
+                                labelStyle: TextStyle(
+                                    color: Colors.indigo[900], fontSize: 16),
+                                prefixIcon: Icon(MdiIcons.fileDocument,
+                                    color: Colors.indigo[700], size: 24),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide:
+                                      BorderSide(color: Colors.indigo[200]!),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(
+                                      color: Colors.indigo[900]!, width: 2),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide:
+                                      BorderSide(color: Colors.indigo[200]!),
+                                ),
+                                filled: true,
+                                fillColor: Colors.indigo[50],
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 16),
+                              ),
+                              value: formData[field['name']]?.toString(),
+                              items: ['CNI', 'Passeport', 'Permis de conduire']
+                                  .map((docType) => DropdownMenuItem<String>(
+                                        value: docType,
+                                        child: Text(docType,
+                                            style: TextStyle(
+                                                color: Colors.black87,
+                                                fontSize: 16)),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) =>
+                                  formData[field['name']] = value,
+                              dropdownColor: Colors.white,
+                              icon: Icon(MdiIcons.chevronDown,
+                                  color: Colors.indigo[700], size: 24),
+                              style: TextStyle(
+                                  color: Colors.black87, fontSize: 16),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          );
+                        } else {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: TextFormField(
+                              initialValue:
+                                  formData[field['name']]?.toString() ?? '',
+                              readOnly: field['readOnly'] == true,
+                              decoration: InputDecoration(
+                                labelText: field['label'],
+                                labelStyle: TextStyle(
+                                    color: Colors.indigo[900], fontSize: 16),
+                                prefixIcon: Icon(field['icon'] ?? MdiIcons.text,
+                                    color: Colors.indigo[700], size: 24),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide:
+                                      BorderSide(color: Colors.indigo[200]!),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(
+                                      color: Colors.indigo[900]!, width: 2),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide:
+                                      BorderSide(color: Colors.indigo[200]!),
+                                ),
+                                filled: true,
+                                fillColor: Colors.indigo[50],
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 16),
+                              ),
+                              keyboardType: field['type'] == 'number'
+                                  ? TextInputType.number
+                                  : field['type'] == 'email'
+                                      ? TextInputType.emailAddress
+                                      : TextInputType.text,
+                              onChanged: (value) => formData[field['name']] =
+                                  field['type'] == 'number'
+                                      ? num.tryParse(value) ?? 0
+                                      : value,
+                              validator: field['validator'] != null
+                                  ? (value) => field['validator']!(value)
+                                  : null,
+                            ),
+                          );
+                        }
+                      }).toList(),
+                      const SizedBox(height: 32),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[300],
                               foregroundColor: Colors.black87,
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 30, vertical: 15),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 16),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
-                              elevation: 5,
-                              shadowColor: Colors.grey[600]),
-                          child: Text('Annuler',
+                              elevation: 4,
+                              shadowColor: Colors.grey[500],
+                            ),
+                            child: Text(
+                              'Annuler',
                               style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600))),
-                      SizedBox(width: 20),
-                      ElevatedButton(
-                          onPressed: () async {
-                            bool? confirm = isEditing
-                                ? await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                            title: Text(
-                                                'Confirmer modification',
+                                  fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          ElevatedButton(
+                            onPressed: () async {
+                              bool? confirm = isEditing
+                                  ? await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(15)),
+                                        title: Text(
+                                          'Confirmer modification',
+                                          style: TextStyle(
+                                              color: Colors.indigo[900]),
+                                        ),
+                                        content: Text(
+                                          'Voulez-vous modifier cet élément ?',
+                                          style:
+                                              TextStyle(color: Colors.black87),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
+                                            child: Text('Non',
                                                 style: TextStyle(
-                                                    color: Colors.teal[700])),
-                                            content: Text(
-                                                'Voulez-vous modifier cet élément ?',
+                                                    color: Colors.grey[600])),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
+                                            child: Text('Oui',
                                                 style: TextStyle(
-                                                    color: Colors.black87)),
-                                            actions: [
-                                              TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(
-                                                          context, false),
-                                                  child: Text('Non',
-                                                      style: TextStyle(
-                                                          color: Colors
-                                                              .grey[600]))),
-                                              TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(
-                                                          context, true),
-                                                  child: Text('Oui',
-                                                      style: TextStyle(
-                                                          color: Colors
-                                                              .teal[700])))
-                                            ])).then((value) => value ?? false)
-                                : true;
-                            if (confirm! && _formKey.currentState!.validate()) {
-                              try {
-                                if (isEditing)
-                                  await widget.service
-                                      .update(formData['id'], formData);
-                                else if (widget.title == 'Agences' &&
-                                    selectedLogoPath != null) {
-                                  await widget.service.createWithImage(formData,
+                                                    color: Colors.indigo[900])),
+                                          ),
+                                        ],
+                                      ),
+                                    ).then((value) => value ?? false)
+                                  : true;
+                              if (confirm! &&
+                                  _formKey.currentState!.validate()) {
+                                try {
+                                  if (isEditing) {
+                                    await widget.service
+                                        .update(formData['id'], formData);
+                                  } else if (widget.title == 'Agences' &&
+                                      selectedLogoPath != null) {
+                                    await widget.service.createWithImage(
+                                      formData,
                                       imagePath: selectedLogoPath,
-                                      imageField: 'logo');
-                                } else if (widget.title == 'Maisons' &&
-                                    selectedPhotoPaths != null) {
-                                  await widget.service.createWithImage(formData,
+                                      imageField: 'logo',
+                                    );
+                                  } else if (widget.title == 'Maisons' &&
+                                      selectedPhotoPaths != null) {
+                                    await widget.service.createWithImage(
+                                      formData,
                                       imagePath: selectedPhotoPaths!.isNotEmpty
                                           ? selectedPhotoPaths![0]
                                           : null,
-                                      imageField: 'photos');
-                                } else {
-                                  await widget.service.create(formData);
-                                }
-                                Navigator.pop(context);
-                                fetchItems();
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                    content: Text(
-                                        '${isEditing ? 'Modifié' : 'Ajouté'} avec succès'),
-                                    backgroundColor: Colors.green[600]));
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                      imageField: 'photos',
+                                    );
+                                  } else {
+                                    await widget.service.create(formData);
+                                  }
+                                  Navigator.pop(context);
+                                  fetchItems();
+                                  ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                        content: Text('Erreur: $e'),
-                                        backgroundColor: Colors.redAccent));
+                                      content: Text(
+                                          '${isEditing ? 'Modifié' : 'Ajouté'} avec succès'),
+                                      backgroundColor: Colors.green[600],
+                                    ),
+                                  );
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Erreur: $e'),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                }
                               }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 30, vertical: 15),
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.indigo[700],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 16),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
-                              elevation: 5,
-                              shadowColor: Colors.teal[900],
-                              foregroundColor: Colors.white,
-                              backgroundColor: Colors.teal[700]),
-                          child: Text(isEditing ? 'Modifier' : 'Ajouter',
+                              elevation: 6,
+                              shadowColor: Colors.indigo[900],
+                            ),
+                            child: Text(
+                              isEditing ? 'Modifier' : 'Ajouter',
                               style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600))),
-                    ]),
-                  ],
+                                  fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -997,7 +1207,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                                       .map((field) => DataCell(Text(
                                                           item[field['name']]
                                                                   ?.toString() ??
-                                                              'N/A',
+                                                              '',
                                                           style: TextStyle(
                                                               color: Colors
                                                                   .black87))))
@@ -1269,7 +1479,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                                         selectedItem![field[
                                                                     'name']]
                                                                 ?.toString() ??
-                                                            'N/A',
+                                                            '',
                                                         style: TextStyle(
                                                             color: Colors
                                                                 .black87)),

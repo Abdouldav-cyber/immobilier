@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gestion_immo/core/config/constants/routes.dart';
 import 'package:gestion_immo/data/services/maison_service.dart';
 import 'package:gestion_immo/features/entity_screen.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 class MaisonsScreen extends EntityScreen {
   MaisonsScreen({super.key})
@@ -98,14 +99,19 @@ class MaisonsScreen extends EntityScreen {
               },
             },
             {
-              'name': 'etat',
+              'name':
+                  'etat_maison', // Changé de 'etat' à 'etat_maison' pour correspondre à entity_screen.dart
               'label': 'État de la maison',
               'type': 'dropdown',
               'icon': Icons.info,
-              'options': [
-                {'id': 'LIBRE', 'label': 'LIBRE'},
-                {'id': 'OCCUPEE', 'label': 'OCCUPEE'},
-              ],
+              // Les options sont gérées directement dans entity_screen.dart
+            },
+            // Nouveau champ pour les photos
+            {
+              'name': 'photos',
+              'label': 'Photos',
+              'type': 'image',
+              'icon': MdiIcons.imageMultiple,
             },
           ],
           icon: Icons.home,

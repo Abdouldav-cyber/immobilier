@@ -23,6 +23,10 @@ class LocationService extends BaseService {
       'date_debut': item['date_debut']?.toString() ?? '',
       'date_fin': item['date_fin']?.toString() ?? '',
       'montant_loyer': item['montant_loyer']?.toString() ?? '0',
+      'date': item['date']?.toString() ?? '',
+      'type_document': item['type_document']?.toString() ?? '',
+      'nom_client': item['nom_client']?.toString() ?? '',
+      'prenom_client': item['prenom_client']?.toString() ?? '',
     };
     return super.create(sanitizedItem);
   }
@@ -35,6 +39,10 @@ class LocationService extends BaseService {
       'date_debut': item['date_debut']?.toString() ?? '',
       'date_fin': item['date_fin']?.toString() ?? '',
       'montant_loyer': item['montant_loyer']?.toString() ?? '0',
+      'date': item['date']?.toString() ?? '',
+      'type_document': item['type_document']?.toString() ?? '',
+      'nom_client': item['nom_client']?.toString() ?? '',
+      'prenom_client': item['prenom_client']?.toString() ?? '',
     };
     return super.update(id, sanitizedItem);
   }
