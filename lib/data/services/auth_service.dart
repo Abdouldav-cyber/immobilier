@@ -17,19 +17,24 @@ class AuthService {
   }) async {
     try {
       print('Début de l\'appel POST à $baseUrl/api/token/ pour connexion');
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/token/'),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {
-          'email': email,
-          'password': password,
-        },
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/token/'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       print(
           'Réponse API (POST /api/token/): ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = _decodeJsonResponse(response);
+        if (!data.containsKey('access') || !data.containsKey('refresh')) {
+          throw Exception('Tokens non trouvés dans la réponse');
+        }
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_accessTokenKey, data['access']);
         await prefs.setString(_refreshTokenKey, data['refresh']);
@@ -40,15 +45,12 @@ class AuthService {
         print('Données utilisateur stockées: $userData');
         return {'success': true};
       } else {
-        final errorData = jsonDecode(response.body);
+        final errorData = _decodeJsonResponse(response);
         final errorMessage = errorData['detail'] ??
             errorData['non_field_errors']?.join(' ') ??
             'Erreur de connexion';
         print('Erreur de connexion: $errorMessage');
-        return {
-          'success': false,
-          'error': errorMessage,
-        };
+        return {'success': false, 'error': errorMessage};
       }
     } catch (e) {
       print('Erreur réseau lors de la connexion: $e');
@@ -65,21 +67,29 @@ class AuthService {
     try {
       print(
           'Début de l\'appel POST à $baseUrl/api/auth/registration/ pour inscription');
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/registration/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'username': username,
-          'password1': password,
-          'password2': password,
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/auth/registration/'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'email': email,
+              'username': username,
+              'password1': password,
+              'password2': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       print(
           'Réponse API (POST /api/auth/registration/): ${response.statusCode} - ${response.body}');
       if (response.statusCode == 201) {
-        final data = jsonDecode(response.body);
+        final data = _decodeJsonResponse(response);
+        if (!data.containsKey('access') || !data.containsKey('refresh')) {
+          throw Exception('Tokens non trouvés dans la réponse');
+        }
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_accessTokenKey, data['access']);
         await prefs.setString(_refreshTokenKey, data['refresh']);
@@ -90,15 +100,12 @@ class AuthService {
         print('Données utilisateur stockées lors de l\'inscription: $userData');
         return {'success': true};
       } else {
-        final errorData = jsonDecode(response.body);
+        final errorData = _decodeJsonResponse(response);
         final errorMessage = errorData['detail'] ??
             errorData['non_field_errors']?.join(' ') ??
             'Erreur d\'inscription';
         print('Erreur d\'inscription: $errorMessage');
-        return {
-          'success': false,
-          'error': errorMessage,
-        };
+        return {'success': false, 'error': errorMessage};
       }
     } catch (e) {
       print('Erreur réseau lors de l\'inscription: $e');
@@ -106,16 +113,21 @@ class AuthService {
     }
   }
 
-  /// Simule une réinitialisation de mot de passe (à implémenter réellement plus tard).
+  /// Réinitialise le mot de passe de l'utilisateur.
   Future<Map<String, dynamic>> resetPassword({required String email}) async {
     try {
       print(
           'Début de l\'appel POST à $baseUrl/api/auth/password/reset/ pour réinitialisation');
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/password/reset/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/auth/password/reset/'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       print(
           'Réponse API (POST /api/auth/password/reset/): ${response.statusCode} - ${response.body}');
@@ -125,14 +137,11 @@ class AuthService {
           'message': 'Lien de réinitialisation envoyé à $email',
         };
       } else {
-        final errorData = jsonDecode(response.body);
+        final errorData = _decodeJsonResponse(response);
         final errorMessage =
             errorData['detail'] ?? 'Erreur lors de la réinitialisation';
         print('Erreur de réinitialisation: $errorMessage');
-        return {
-          'success': false,
-          'error': errorMessage,
-        };
+        return {'success': false, 'error': errorMessage};
       }
     } catch (e) {
       print('Erreur réseau lors de la réinitialisation de mot de passe: $e');
@@ -145,20 +154,26 @@ class AuthService {
     try {
       print(
           'Début de l\'appel POST à $baseUrl/api/auth/google/ pour connexion Google');
-      // À implémenter avec une vraie intégration Google Sign-In
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/google/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'access_token':
-              'google_access_token', // À remplacer par un vrai token Google
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/auth/google/'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'access_token': 'google_access_token'
+            }), // À remplacer par un vrai token
+          )
+          .timeout(const Duration(seconds: 10));
 
       print(
           'Réponse API (POST /api/auth/google/): ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = _decodeJsonResponse(response);
+        if (!data.containsKey('access') || !data.containsKey('refresh')) {
+          throw Exception('Tokens non trouvés dans la réponse');
+        }
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_accessTokenKey, data['access']);
         await prefs.setString(_refreshTokenKey, data['refresh']);
@@ -169,7 +184,7 @@ class AuthService {
         print('Données utilisateur stockées: $userData');
         return {'success': true};
       } else {
-        final errorData = jsonDecode(response.body);
+        final errorData = _decodeJsonResponse(response);
         final errorMessage =
             errorData['detail'] ?? 'Erreur lors de la connexion Google';
         print('Erreur de connexion Google: $errorMessage');
@@ -196,14 +211,16 @@ class AuthService {
       final token = await getAccessToken();
       if (token != null) {
         final response = await http.post(
-          Uri.parse('$baseUrl/api/logout/'),
+          Uri.parse(
+              '$baseUrl/api/auth/logout/'), // Mise à jour de l'URL pour correspondre à dj-rest-auth
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
-        );
+        ).timeout(const Duration(seconds: 10));
         print(
-            'Réponse API (POST /api/logout/): ${response.statusCode} - ${response.body}');
+            'Réponse API (POST /api/auth/logout/): ${response.statusCode} - ${response.body}');
         if (response.statusCode != 200) {
           print('Erreur lors de la déconnexion côté serveur: ${response.body}');
         }
@@ -276,11 +293,7 @@ class AuthService {
           print('Données utilisateur rechargées depuis l\'API: $userData');
           return userData;
         }
-        return {
-          'username': 'Inconnu',
-          'email': '',
-          'agence_id': null,
-        };
+        return {'username': 'Inconnu', 'email': '', 'agence_id': null};
       }
       final userData = jsonDecode(userDataString);
       print('Données utilisateur récupérées: $userData');
@@ -299,28 +312,37 @@ class AuthService {
       final refreshToken = prefs.getString(_refreshTokenKey);
       if (refreshToken == null || refreshToken.isEmpty) {
         print('Aucun token de rafraîchissement disponible');
+        await logout();
         return null;
       }
 
       print(
           'Début de l\'appel POST à $baseUrl/api/token/refresh/ pour rafraîchir le token');
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/token/refresh/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh': refreshToken}),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/token/refresh/'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'refresh': refreshToken}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       print(
           'Réponse API (POST /api/token/refresh/): ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = _decodeJsonResponse(response);
+        if (!data.containsKey('access')) {
+          throw Exception('Token d\'accès non trouvé dans la réponse');
+        }
         final newAccessToken = data['access'];
         await prefs.setString(_accessTokenKey, newAccessToken);
         print('Nouveau token d\'accès sauvegardé: $newAccessToken');
         return newAccessToken;
       } else {
         print('Échec du rafraîchissement du token: ${response.body}');
-        await logout(); // Déconnexion si le rafraîchissement échoue
+        await logout();
         return null;
       }
     } catch (e) {
@@ -341,12 +363,13 @@ class AuthService {
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-      );
+      ).timeout(const Duration(seconds: 10));
       print(
           'Réponse API (GET /api/user/): ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
-        final userData = jsonDecode(response.body);
+        final userData = _decodeJsonResponse(response);
         return userData;
       } else if (response.statusCode == 401) {
         print('Token invalide ou expiré, tentative de rafraîchissement...');
@@ -355,6 +378,9 @@ class AuthService {
           return await _fetchUserDataWithRefresh(newAccessToken);
         }
         throw Exception('Non autorisé : impossible de rafraîchir le token');
+      } else if (response.statusCode == 404) {
+        print('Endpoint non trouvé, vérifiez la configuration du backend');
+        throw Exception('Endpoint non trouvé : ${response.body}');
       }
       throw Exception(
           'Erreur lors de la récupération des données utilisateur: ${response.statusCode} - ${response.body}');
@@ -366,8 +392,19 @@ class AuthService {
     }
   }
 
-  /// Méthode interne pour récupérer les données utilisateur (utilisée par les autres méthodes).
+  /// Méthode interne pour récupérer les données utilisateur.
   Future<Map<String, dynamic>> _fetchUserData(String accessToken) async {
     return await _fetchUserDataWithRefresh(accessToken);
+  }
+
+  /// Décode la réponse JSON avec gestion des erreurs.
+  Map<String, dynamic> _decodeJsonResponse(http.Response response) {
+    try {
+      final data = jsonDecode(response.body);
+      return data is Map<String, dynamic> ? data : {};
+    } catch (e) {
+      print('Erreur de décodage JSON : $e - Réponse : ${response.body}');
+      return {'error': 'Réponse non valide', 'detail': response.body};
+    }
   }
 }

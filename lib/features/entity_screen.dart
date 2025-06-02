@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class EntityScreen extends StatefulWidget {
   final String title;
@@ -54,10 +55,27 @@ class _EntityScreenState extends State<EntityScreen> {
   }
 
   Future<void> _loadUserAgenceId() async {
-    final userData = await AuthService().getUserData();
-    setState(() {
-      currentUserAgenceId = userData['agence_id']?.toString();
-    });
+    try {
+      final userData = await AuthService().getUserData();
+      if (mounted) {
+        setState(() {
+          currentUserAgenceId = userData['agence_id']?.toString();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          errorMessage = 'Erreur lors de la récupération de l\'agence: $e';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Erreur lors de la récupération des données utilisateur: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> fetchItems() async {
@@ -205,28 +223,48 @@ class _EntityScreenState extends State<EntityScreen> {
   }
 
   Future<void> _pickImage({required bool isLogo}) async {
-    final status = await Permission.photos.request();
-    if (status.isGranted) {
-      final picker = ImagePicker();
-      if (isLogo) {
-        final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-        if (pickedFile != null) {
-          setState(() {
-            selectedLogoPath = pickedFile.path;
-          });
+    try {
+      if (!kIsWeb) {
+        final status = await Permission.photos.request();
+        if (status.isGranted) {
+          final picker = ImagePicker();
+          if (isLogo) {
+            final pickedFile =
+                await picker.pickImage(source: ImageSource.gallery);
+            if (pickedFile != null && mounted) {
+              setState(() {
+                selectedLogoPath = pickedFile.path;
+              });
+            }
+          } else {
+            final pickedFiles = await picker.pickMultiImage();
+            if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
+              setState(() {
+                selectedPhotoPaths =
+                    pickedFiles.map((file) => file.path).toList();
+              });
+            }
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Permission refusée'),
+                backgroundColor: Colors.redAccent),
+          );
         }
       } else {
-        final pickedFiles = await picker.pickMultiImage();
-        if (pickedFiles != null && pickedFiles.isNotEmpty) {
-          setState(() {
-            selectedPhotoPaths = pickedFiles.map((file) => file.path).toList();
-          });
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'La sélection de photos n\'est pas supportée sur le web. Utilisez un appareil mobile.'),
+            backgroundColor: Colors.yellow[700],
+          ),
+        );
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Permission refusée'),
+            content: Text('Erreur lors de la sélection de l\'image: $e'),
             backgroundColor: Colors.redAccent),
       );
     }
@@ -380,7 +418,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                     child: child!,
                                   ),
                                 );
-                                if (picked != null) {
+                                if (picked != null && mounted) {
                                   setState(() {
                                     if (field['name'] == 'date_debut') {
                                       selectedDateDebut = picked;
@@ -1352,141 +1390,172 @@ class _EntityScreenState extends State<EntityScreen> {
                                                   color: Colors.teal[700])),
                                           IconButton(
                                               icon: Icon(MdiIcons.close,
-                                                  color: Colors.grey[600]),
+                                                  color: Colors.grey[700]),
                                               onPressed: () => setState(
                                                   () => selectedItem = null))
                                         ]),
-                                    Divider(color: Colors.teal[200]),
-                                    SizedBox(height: 10),
-                                    if (selectedItem!['logo'] != null &&
-                                        selectedItem!['logo']
-                                            .toString()
-                                            .isNotEmpty)
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black12,
-                                              blurRadius: 4,
-                                              offset: Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                          child: CachedNetworkImage(
-                                              imageUrl: selectedItem!['logo']
-                                                  .toString(),
-                                              width: double.infinity,
-                                              height: 150,
-                                              fit: BoxFit.cover,
-                                              placeholder: (context, url) => Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                          color: Colors
-                                                              .teal[700])),
-                                              errorWidget: (context, url,
-                                                      error) =>
-                                                  Center(
-                                                      child: Icon(
-                                                          MdiIcons.alertCircle,
-                                                          color:
-                                                              Colors.redAccent,
-                                                          size: 40))),
-                                        ),
-                                      ),
-                                    if (selectedItem!['photos'] != null &&
-                                        (selectedItem!['photos'] as List)
-                                            .isNotEmpty)
-                                      Container(
-                                        height: 150,
-                                        margin: EdgeInsets.only(top: 10),
-                                        child: ListView.builder(
-                                          scrollDirection: Axis.horizontal,
-                                          itemCount:
-                                              (selectedItem!['photos'] as List)
-                                                  .length,
-                                          itemBuilder: (context, index) {
-                                            return Padding(
-                                              padding:
-                                                  EdgeInsets.only(right: 8),
-                                              child: Container(
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black12,
-                                                      blurRadius: 4,
-                                                      offset: Offset(0, 2),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                  child: CachedNetworkImage(
-                                                      imageUrl: (selectedItem!['photos']
-                                                              as List)[index]
-                                                          .toString(),
-                                                      width: 150,
-                                                      height: 150,
-                                                      fit: BoxFit.cover,
-                                                      placeholder: (context, url) => Center(
-                                                          child: CircularProgressIndicator(
-                                                              color: Colors
-                                                                  .teal[700])),
-                                                      errorWidget: (context,
-                                                              url, error) =>
-                                                          Center(
-                                                              child: Icon(MdiIcons.alertCircle,
-                                                                  color: Colors
-                                                                      .redAccent,
-                                                                  size: 40))),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
                                     SizedBox(height: 10),
                                     ...widget.fields
                                         .where((field) => !['logo', 'photos']
                                             .contains(field['name']))
                                         .map((field) => Padding(
-                                              padding:
-                                                  EdgeInsets.only(bottom: 8),
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 10),
                                               child: Row(
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
                                                 children: [
-                                                  Expanded(
-                                                    flex: 1,
-                                                    child: Text(
-                                                        '${field['label']}:',
-                                                        style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color: Colors
-                                                                .teal[700])),
+                                                  Text(
+                                                    '${field['label']}: ',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            Colors.teal[900]),
                                                   ),
                                                   Expanded(
-                                                    flex: 2,
                                                     child: Text(
-                                                        selectedItem![field[
-                                                                    'name']]
-                                                                ?.toString() ??
-                                                            '',
-                                                        style: TextStyle(
-                                                            color: Colors
-                                                                .black87)),
+                                                      selectedItem![
+                                                                  field['name']]
+                                                              ?.toString() ??
+                                                          '',
+                                                      style: TextStyle(
+                                                          color:
+                                                              Colors.black87),
+                                                    ),
                                                   ),
                                                 ],
                                               ),
-                                            )),
+                                            ))
+                                        .toList(),
+                                    if (selectedItem!['logo'] != null)
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Logo:',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.teal[900]),
+                                          ),
+                                          SizedBox(height: 5),
+                                          Container(
+                                            width: 120,
+                                            height: 120,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black12,
+                                                  blurRadius: 6,
+                                                  offset: Offset(0, 3),
+                                                ),
+                                              ],
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              child: CachedNetworkImage(
+                                                imageUrl: selectedItem!['logo'],
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                                color:
+                                                                    Colors.teal[
+                                                                        700])),
+                                                errorWidget: (context, url,
+                                                        error) =>
+                                                    Center(
+                                                        child: Icon(
+                                                            MdiIcons
+                                                                .alertCircle,
+                                                            color: Colors
+                                                                .redAccent,
+                                                            size: 40)),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    if (selectedItem!['photos'] != null &&
+                                        (selectedItem!['photos'] as List)
+                                            .isNotEmpty)
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Photos:',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.teal[900]),
+                                          ),
+                                          SizedBox(height: 5),
+                                          SizedBox(
+                                            height: 120,
+                                            child: ListView.builder(
+                                              scrollDirection: Axis.horizontal,
+                                              itemCount:
+                                                  (selectedItem!['photos']
+                                                          as List)
+                                                      .length,
+                                              itemBuilder: (context, index) {
+                                                return Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          right: 12),
+                                                  child: Container(
+                                                    width: 120,
+                                                    height: 120,
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              16),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black12,
+                                                          blurRadius: 6,
+                                                          offset: Offset(0, 3),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              16),
+                                                      child: CachedNetworkImage(
+                                                        imageUrl: selectedItem![
+                                                            'photos'][index],
+                                                        fit: BoxFit.cover,
+                                                        placeholder: (context,
+                                                                url) =>
+                                                            Center(
+                                                                child: CircularProgressIndicator(
+                                                                    color: Colors
+                                                                            .teal[
+                                                                        700])),
+                                                        errorWidget: (context,
+                                                                url, error) =>
+                                                            Center(
+                                                                child: Icon(
+                                                                    MdiIcons
+                                                                        .alertCircle,
+                                                                    color: Colors
+                                                                        .redAccent,
+                                                                    size: 40)),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                   ],
                                 ),
                               ),
@@ -1496,28 +1565,6 @@ class _EntityScreenState extends State<EntityScreen> {
                       ),
                   ],
                 ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      appBar: AppBar(
-        backgroundColor: Colors.teal[700],
-        elevation: 4,
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: ElevatedButton.icon(
-              onPressed: _logout,
-              icon: Icon(Icons.logout, color: Colors.white),
-              label: Text('Déconnexion',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal[900],
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                elevation: 0,
               ),
             ),
           ),

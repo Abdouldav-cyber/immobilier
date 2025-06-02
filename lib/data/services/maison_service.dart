@@ -9,9 +9,13 @@ class MaisonService extends BaseService {
 
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
+    final token = prefs.getString('access_token');
+    if (token == null)
+      throw Exception(
+          'Utilisateur non authentifié'); // Ajout de la vérification
     return {
       'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
     };
   }
 
@@ -58,7 +62,7 @@ class MaisonService extends BaseService {
   @override
   Future<dynamic> createWithImage(dynamic item,
       {String? imagePath, String? imageField}) async {
-    final url = Uri.parse('$baseUrl/$endpoint/');
+    final url = Uri.parse('$baseUrl/api/maisons/');
     final headers = await _getHeaders();
     var request = http.MultipartRequest('POST', url);
 
@@ -92,7 +96,7 @@ class MaisonService extends BaseService {
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 201) {
-      return jsonDecode(response.body);
+      return _decodeJsonResponse(response);
     } else {
       throw Exception('Erreur lors de la création: ${response.body}');
     }
@@ -101,7 +105,7 @@ class MaisonService extends BaseService {
   @override
   Future<dynamic> updateWithImage(dynamic id, dynamic item,
       {String? imagePath, String? imageField}) async {
-    final url = Uri.parse('$baseUrl/$endpoint/$id/');
+    final url = Uri.parse('$baseUrl/api/maisons/$id/');
     final headers = await _getHeaders();
     var request = http.MultipartRequest('PUT', url);
 
@@ -135,9 +139,20 @@ class MaisonService extends BaseService {
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      return _decodeJsonResponse(response);
     } else {
       throw Exception('Erreur lors de la mise à jour: ${response.body}');
+    }
+  }
+
+  /// Décode la réponse JSON avec gestion des erreurs.
+  dynamic _decodeJsonResponse(http.Response response) {
+    try {
+      final data = jsonDecode(response.body);
+      return data is Map ? data : {};
+    } catch (e) {
+      print('Erreur de décodage JSON : $e - Réponse : ${response.body}');
+      throw Exception('Réponse non valide : ${response.body}');
     }
   }
 }

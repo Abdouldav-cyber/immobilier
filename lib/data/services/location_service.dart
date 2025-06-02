@@ -8,10 +8,11 @@ class LocationService extends BaseService {
 
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
+    final token = prefs.getString('access_token') ?? '';
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
     };
   }
 
@@ -48,7 +49,8 @@ class LocationService extends BaseService {
   }
 
   Future<dynamic> cloturerLocation(int id, int maisonId) async {
-    final url = Uri.parse('$baseUrl/locations/$id/cloturer/');
+    final url =
+        Uri.parse('$baseUrl/api/locations/$id/cloturer/'); // Ajout de /api/
     final headers = await _getHeaders();
     final response = await http.put(
       url,
@@ -56,9 +58,20 @@ class LocationService extends BaseService {
       body: jsonEncode({'maison_id': maisonId, 'statut': 'CLOTUREE'}),
     );
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      return _decodeJsonResponse(response);
     } else {
       throw Exception('Erreur lors de la clôture: ${response.body}');
+    }
+  }
+
+  /// Décode la réponse JSON avec gestion des erreurs.
+  dynamic _decodeJsonResponse(http.Response response) {
+    try {
+      final data = jsonDecode(response.body);
+      return data is Map ? data : {};
+    } catch (e) {
+      print('Erreur de décodage JSON : $e - Réponse : ${response.body}');
+      throw Exception('Réponse non valide : ${response.body}');
     }
   }
 }
