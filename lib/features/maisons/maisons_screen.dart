@@ -99,14 +99,11 @@ class MaisonsScreen extends EntityScreen {
               },
             },
             {
-              'name':
-                  'etat_maison', // Changé de 'etat' à 'etat_maison' pour correspondre à entity_screen.dart
+              'name': 'etat_maison',
               'label': 'État de la maison',
               'type': 'dropdown',
               'icon': Icons.info,
-              // Les options sont gérées directement dans entity_screen.dart
             },
-            // Nouveau champ pour les photos
             {
               'name': 'photos',
               'label': 'Photos',

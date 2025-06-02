@@ -97,24 +97,14 @@ class _EntityScreenState extends State<EntityScreen> {
         });
       }
     } catch (e) {
-      if (e.toString().contains('401')) {
-        setState(() {
-          errorMessage =
-              'Utilisateur non authentifié. Veuillez vous reconnecter.';
-          isLoading = false;
-        });
-        await AuthService().logout();
-        Navigator.pushReplacementNamed(context, Routes.login);
-      } else {
-        setState(() {
-          errorMessage = 'Erreur lors du chargement des données: $e';
-          isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Erreur: $e'), backgroundColor: Colors.redAccent),
-        );
-      }
+      setState(() {
+        errorMessage = 'Erreur lors du chargement des données: $e';
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Erreur: $e'), backgroundColor: Colors.redAccent),
+      );
     }
   }
 
@@ -144,23 +134,15 @@ class _EntityScreenState extends State<EntityScreen> {
               });
             }
           } catch (e) {
-            if (e.toString().contains('401')) {
-              setState(() {
-                errorMessage =
-                    'Utilisateur non authentifié pour $endpoint. Veuillez vous reconnecter.';
-              });
-              await AuthService().logout();
-              Navigator.pushReplacementNamed(context, Routes.login);
-            } else {
-              setState(() {
-                errorMessage = 'Erreur options pour $endpoint: $e';
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text('Erreur options: $e'),
-                    backgroundColor: Colors.redAccent),
-              );
-            }
+            setState(() {
+              errorMessage =
+                  'Erreur lors du chargement des options pour $endpoint: $e';
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text('Erreur options: $e'),
+                  backgroundColor: Colors.redAccent),
+            );
           }
         }
       }
@@ -293,14 +275,14 @@ class _EntityScreenState extends State<EntityScreen> {
         backgroundColor: Colors.white,
         elevation: 10,
         child: AnimatedContainer(
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
           width: MediaQuery.of(context).size.width * 0.9,
-          constraints: BoxConstraints(
+          constraints: const BoxConstraints(
             minWidth: 400,
             maxWidth: 800,
             minHeight: 300,
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
+            maxHeight: 750,
           ),
           child: StatefulBuilder(
             builder: (context, setState) => SingleChildScrollView(
@@ -320,7 +302,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                 ? 'Modifier ${widget.title}'
                                 : 'Ajouter ${widget.title}',
                             style: TextStyle(
-                              fontSize: 28,
+                              fontSize: 24, // Remplacement de urchin28
                               fontWeight: FontWeight.bold,
                               color: Colors.indigo[900],
                             ),
@@ -382,7 +364,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                   .map((option) => DropdownMenuItem<String>(
                                         value: option['id'],
                                         child: Text(option['label'],
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                                 color: Colors.black87,
                                                 fontSize: 16)),
                                       ))
@@ -392,7 +374,7 @@ class _EntityScreenState extends State<EntityScreen> {
                               dropdownColor: Colors.white,
                               icon: Icon(MdiIcons.chevronDown,
                                   color: Colors.indigo[700], size: 24),
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Colors.black87, fontSize: 16),
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -412,7 +394,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                       primaryColor: Colors.indigo[700],
                                       colorScheme: ColorScheme.light(
                                           primary: Colors.indigo[700]!),
-                                      buttonTheme: ButtonThemeData(
+                                      buttonTheme: const ButtonThemeData(
                                           textTheme: ButtonTextTheme.primary),
                                     ),
                                     child: child!,
@@ -462,7 +444,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                               : (selectedDate != null
                                                   ? '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'
                                                   : 'Sélectionner Date'),
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           color: Colors.black87, fontSize: 16),
                                     ),
                                   ],
@@ -641,7 +623,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                   },
                                   icon: Icon(MdiIcons.imagePlus,
                                       color: Colors.white, size: 20),
-                                  label: Text('Ajouter un logo',
+                                  label: const Text('Ajouter un logo',
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 16)),
                                   style: ElevatedButton.styleFrom(
@@ -665,7 +647,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                   },
                                   icon: Icon(MdiIcons.imageMultiple,
                                       color: Colors.white, size: 20),
-                                  label: Text('Ajouter des photos',
+                                  label: const Text('Ajouter des photos',
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 16)),
                                   style: ElevatedButton.styleFrom(
@@ -689,7 +671,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                   },
                                   icon: Icon(MdiIcons.imagePlus,
                                       color: Colors.white, size: 20),
-                                  label: Text('Charger une photo',
+                                  label: const Text('Charger une photo',
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 16)),
                                   style: ElevatedButton.styleFrom(
@@ -741,7 +723,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                   .map((state) => DropdownMenuItem<String>(
                                         value: state,
                                         child: Text(state,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                                 color: Colors.black87,
                                                 fontSize: 16)),
                                       ))
@@ -751,7 +733,7 @@ class _EntityScreenState extends State<EntityScreen> {
                               dropdownColor: Colors.white,
                               icon: Icon(MdiIcons.chevronDown,
                                   color: Colors.indigo[700], size: 24),
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Colors.black87, fontSize: 16),
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -792,7 +774,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                   .map((docType) => DropdownMenuItem<String>(
                                         value: docType,
                                         child: Text(docType,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                                 color: Colors.black87,
                                                 fontSize: 16)),
                                       ))
@@ -802,7 +784,7 @@ class _EntityScreenState extends State<EntityScreen> {
                               dropdownColor: Colors.white,
                               icon: Icon(MdiIcons.chevronDown,
                                   color: Colors.indigo[700], size: 24),
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Colors.black87, fontSize: 16),
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -872,11 +854,9 @@ class _EntityScreenState extends State<EntityScreen> {
                               elevation: 4,
                               shadowColor: Colors.grey[500],
                             ),
-                            child: Text(
-                              'Annuler',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
+                            child: const Text('Annuler',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600)),
                           ),
                           const SizedBox(width: 24),
                           ElevatedButton(
@@ -888,16 +868,13 @@ class _EntityScreenState extends State<EntityScreen> {
                                         shape: RoundedRectangleBorder(
                                             borderRadius:
                                                 BorderRadius.circular(15)),
-                                        title: Text(
-                                          'Confirmer modification',
-                                          style: TextStyle(
-                                              color: Colors.indigo[900]),
-                                        ),
+                                        title: Text('Confirmer modification',
+                                            style: TextStyle(
+                                                color: Colors.indigo[900])),
                                         content: Text(
-                                          'Voulez-vous modifier cet élément ?',
-                                          style:
-                                              TextStyle(color: Colors.black87),
-                                        ),
+                                            'Voulez-vous modifier cet élément ?',
+                                            style: TextStyle(
+                                                color: Colors.black87)),
                                         actions: [
                                           TextButton(
                                             onPressed: () =>
@@ -926,19 +903,18 @@ class _EntityScreenState extends State<EntityScreen> {
                                   } else if (widget.title == 'Agences' &&
                                       selectedLogoPath != null) {
                                     await widget.service.createWithImage(
-                                      formData,
-                                      imagePath: selectedLogoPath,
-                                      imageField: 'logo',
-                                    );
+                                        formData,
+                                        imagePath: selectedLogoPath,
+                                        imageField: 'logo');
                                   } else if (widget.title == 'Maisons' &&
                                       selectedPhotoPaths != null) {
                                     await widget.service.createWithImage(
-                                      formData,
-                                      imagePath: selectedPhotoPaths!.isNotEmpty
-                                          ? selectedPhotoPaths![0]
-                                          : null,
-                                      imageField: 'photos',
-                                    );
+                                        formData,
+                                        imagePath:
+                                            selectedPhotoPaths!.isNotEmpty
+                                                ? selectedPhotoPaths![0]
+                                                : null,
+                                        imageField: 'photos');
                                   } else {
                                     await widget.service.create(formData);
                                   }
@@ -954,9 +930,8 @@ class _EntityScreenState extends State<EntityScreen> {
                                 } catch (e) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Erreur: $e'),
-                                      backgroundColor: Colors.redAccent,
-                                    ),
+                                        content: Text('Erreur: $e'),
+                                        backgroundColor: Colors.redAccent),
                                   );
                                 }
                               }
@@ -971,11 +946,9 @@ class _EntityScreenState extends State<EntityScreen> {
                               elevation: 6,
                               shadowColor: Colors.indigo[900],
                             ),
-                            child: Text(
-                              isEditing ? 'Modifier' : 'Ajouter',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
+                            child: Text(isEditing ? 'Modifier' : 'Ajouter',
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -992,33 +965,39 @@ class _EntityScreenState extends State<EntityScreen> {
 
   Future<void> _cloturerLocation(int id, int maisonId) async {
     bool? confirm = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-                title: Text('Clôturer location',
-                    style: TextStyle(color: Colors.red[700])),
-                content: Text('Voulez-vous clôturer cette location ?',
-                    style: TextStyle(color: Colors.black87)),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text('Non',
-                          style: TextStyle(color: Colors.grey[600]))),
-                  TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child:
-                          Text('Oui', style: TextStyle(color: Colors.red[700])))
-                ])).then((value) => value ?? false);
+      context: context,
+      builder: (context) => AlertDialog(
+        title:
+            Text('Clôturer location', style: TextStyle(color: Colors.red[700])),
+        content: const Text('Voulez-vous clôturer cette location ?',
+            style: TextStyle(color: Colors.black87)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Non', style: TextStyle(color: Colors.grey[600])),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Oui', style: TextStyle(color: Colors.red[700])),
+          ),
+        ],
+      ),
+    ).then((value) => value ?? false);
     if (confirm == true) {
       try {
         final locationService = LocationService();
         await locationService.cloturerLocation(id, maisonId);
         fetchItems();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Location clôturée avec succès'),
-            backgroundColor: Colors.green[600]));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: const Text('Location clôturée avec succès'),
+              backgroundColor: Colors.green[600]),
+        );
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Erreur: $e'), backgroundColor: Colors.redAccent));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Erreur: $e'), backgroundColor: Colors.redAccent),
+        );
       }
     }
   }
@@ -1026,23 +1005,27 @@ class _EntityScreenState extends State<EntityScreen> {
   Widget _buildSidebarItem(IconData icon, String title, VoidCallback onTap,
       [bool isSelected = false]) {
     return MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Tooltip(
-            message: title,
-            child: ListTile(
-                leading: Icon(icon,
-                    color: isSelected ? Colors.white : Colors.grey[300],
-                    size: 26),
-                title: Text(title,
-                    style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey[300],
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
-                        fontSize: 16)),
-                onTap: onTap,
-                tileColor: isSelected ? Colors.teal[700] : null,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)))));
+      cursor: SystemMouseCursors.click,
+      child: Tooltip(
+        message: title,
+        child: ListTile(
+          leading: Icon(icon,
+              color: isSelected ? Colors.white : Colors.grey[300], size: 26),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.grey[300],
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              fontSize: 16,
+            ),
+          ),
+          onTap: onTap,
+          tileColor: isSelected ? Colors.teal[700] : null,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+    );
   }
 
   @override
@@ -1054,23 +1037,33 @@ class _EntityScreenState extends State<EntityScreen> {
           Container(
             width: 250,
             height: double.infinity,
-            decoration: BoxDecoration(color: Colors.teal[900], boxShadow: [
-              BoxShadow(
-                  color: Colors.black26, blurRadius: 10, offset: Offset(2, 0))
-            ]),
+            decoration: BoxDecoration(
+              color: Colors.teal[900],
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                  offset: Offset(2, 0),
+                ),
+              ],
+            ),
             child: Column(
               children: [
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 ListTile(
-                    leading: Icon(MdiIcons.menu, color: Colors.white),
-                    title: Text('Menu',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18))),
+                  leading: Icon(MdiIcons.menu, color: Colors.white),
+                  title: Text(
+                    'Menu',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -1114,7 +1107,7 @@ class _EntityScreenState extends State<EntityScreen> {
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1124,36 +1117,39 @@ class _EntityScreenState extends State<EntityScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 15),
                             decoration: BoxDecoration(
-                                gradient: LinearGradient(colors: [
-                                  Colors.teal[600]!,
-                                  Colors.teal[800]!
-                                ]),
-                                borderRadius: BorderRadius.circular(15),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 4))
-                                ]),
+                              gradient: LinearGradient(colors: [
+                                Colors.teal[600]!,
+                                Colors.teal[800]!
+                              ]),
+                              borderRadius: BorderRadius.circular(15),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
                             child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(widget.title,
-                                      style: TextStyle(
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white)),
-                                  IconButton(
-                                      icon: Icon(Icons.refresh,
-                                          color: Colors.white),
-                                      onPressed: fetchItems)
-                                ]),
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(widget.title,
+                                    style: const TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white)),
+                                IconButton(
+                                  icon: const Icon(Icons.refresh,
+                                      color: Colors.white),
+                                  onPressed: fetchItems,
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           isLoading
                               ? Center(
                                   child: CircularProgressIndicator(
@@ -1165,17 +1161,20 @@ class _EntityScreenState extends State<EntityScreen> {
                                               color: Colors.red[700])))
                                   : items.isEmpty
                                       ? Center(
-                                          child: Column(children: [
-                                          SizedBox(height: 50),
-                                          Icon(widget.icon,
-                                              size: 80,
-                                              color: Colors.grey[400]),
-                                          SizedBox(height: 10),
-                                          Text('Aucune donnée',
-                                              style: TextStyle(
-                                                  fontSize: 18,
-                                                  color: Colors.grey[600]))
-                                        ]))
+                                          child: Column(
+                                            children: [
+                                              const SizedBox(height: 50),
+                                              Icon(widget.icon,
+                                                  size: 80,
+                                                  color: Colors.grey[400]),
+                                              const SizedBox(height: 10),
+                                              Text('Aucune donnée',
+                                                  style: TextStyle(
+                                                      fontSize: 18,
+                                                      color: Colors.grey[600])),
+                                            ],
+                                          ),
+                                        )
                                       : SingleChildScrollView(
                                           scrollDirection: Axis.horizontal,
                                           child: DataTable(
@@ -1233,7 +1232,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                               return DataRow(
                                                 cells: [
                                                   DataCell(Text('${index + 1}',
-                                                      style: TextStyle(
+                                                      style: const TextStyle(
                                                           color:
                                                               Colors.black87))),
                                                   ...widget.fields
@@ -1246,7 +1245,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                                           item[field['name']]
                                                                   ?.toString() ??
                                                               '',
-                                                          style: TextStyle(
+                                                          style: const TextStyle(
                                                               color: Colors
                                                                   .black87))))
                                                       .toList(),
@@ -1255,12 +1254,13 @@ class _EntityScreenState extends State<EntityScreen> {
                                                         MainAxisSize.min,
                                                     children: [
                                                       IconButton(
-                                                          icon: Icon(Icons.edit,
-                                                              color: Colors
-                                                                  .blue[700]),
-                                                          onPressed: () =>
-                                                              _showFormDialog(
-                                                                  item: item)),
+                                                        icon: Icon(Icons.edit,
+                                                            color: Colors
+                                                                .blue[700]),
+                                                        onPressed: () =>
+                                                            _showFormDialog(
+                                                                item: item),
+                                                      ),
                                                       if (widget.title ==
                                                               'Locations' &&
                                                           item['active'] ==
@@ -1286,7 +1286,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                                               ScaffoldMessenger
                                                                       .of(context)
                                                                   .showSnackBar(
-                                                                SnackBar(
+                                                                const SnackBar(
                                                                   content: Text(
                                                                       'ID ou maison_id invalide pour la clôture'),
                                                                   backgroundColor:
@@ -1314,7 +1314,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                                             ScaffoldMessenger
                                                                     .of(context)
                                                                 .showSnackBar(
-                                                              SnackBar(
+                                                              const SnackBar(
                                                                 content: Text(
                                                                     'ID invalide pour la suppression'),
                                                                 backgroundColor:
@@ -1341,23 +1341,24 @@ class _EntityScreenState extends State<EntityScreen> {
                                             }).toList(),
                                           ),
                                         ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           Center(
                             child: ElevatedButton.icon(
                               onPressed: () => _showFormDialog(),
                               icon: Icon(MdiIcons.plus,
                                   size: 20, color: Colors.white),
                               label: Text('Ajouter ${widget.title}',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 16, color: Colors.white)),
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal[700],
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 25, vertical: 15),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  elevation: 5,
-                                  shadowColor: Colors.teal[900]),
+                                backgroundColor: Colors.teal[700],
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 25, vertical: 15),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                elevation: 5,
+                                shadowColor: Colors.teal[900],
+                              ),
                             ),
                           ),
                         ],
@@ -1367,34 +1368,37 @@ class _EntityScreenState extends State<EntityScreen> {
                       Expanded(
                         flex: 1,
                         child: Padding(
-                          padding: EdgeInsets.only(left: 16),
+                          padding: const EdgeInsets.only(left: 16),
                           child: Card(
                             elevation: 6,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(15)),
                             child: Padding(
-                              padding: EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(16),
                               child: SingleChildScrollView(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                              'Détails de l\'${widget.title.toLowerCase()}',
-                                              style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.teal[700])),
-                                          IconButton(
-                                              icon: Icon(MdiIcons.close,
-                                                  color: Colors.grey[700]),
-                                              onPressed: () => setState(
-                                                  () => selectedItem = null))
-                                        ]),
-                                    SizedBox(height: 10),
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Détails de l\'${widget.title.toLowerCase()}',
+                                          style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.teal[700]),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(MdiIcons.close,
+                                              color: Colors.grey[700]),
+                                          onPressed: () => setState(
+                                              () => selectedItem = null),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
                                     ...widget.fields
                                         .where((field) => !['logo', 'photos']
                                             .contains(field['name']))
@@ -1419,7 +1423,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                                                   field['name']]
                                                               ?.toString() ??
                                                           '',
-                                                      style: TextStyle(
+                                                      style: const TextStyle(
                                                           color:
                                                               Colors.black87),
                                                     ),
@@ -1433,13 +1437,11 @@ class _EntityScreenState extends State<EntityScreen> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            'Logo:',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.teal[900]),
-                                          ),
-                                          SizedBox(height: 5),
+                                          Text('Logo:',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.teal[900])),
+                                          const SizedBox(height: 5),
                                           Container(
                                             width: 120,
                                             height: 120,
@@ -1488,13 +1490,11 @@ class _EntityScreenState extends State<EntityScreen> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            'Photos:',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.teal[900]),
-                                          ),
-                                          SizedBox(height: 5),
+                                          Text('Photos:',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.teal[900])),
+                                          const SizedBox(height: 5),
                                           SizedBox(
                                             height: 120,
                                             child: ListView.builder(
