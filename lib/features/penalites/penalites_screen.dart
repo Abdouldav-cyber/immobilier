@@ -24,8 +24,12 @@ class PenalitesScreen extends EntityScreen {
             {
               'name': 'location_id',
               'label': 'ID de la Location',
-              'type': 'number',
+              'type': 'dropdown',
               'icon': Icons.location_on,
+              'options_endpoint': 'locations',
+              'validator': (value) {
+                return null; // Optionnel
+              },
             },
           ],
           icon: Icons.warning,

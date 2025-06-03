@@ -18,14 +18,18 @@ class PaiementsScreen extends EntityScreen {
             {
               'name': 'date',
               'label': 'Date',
-              'type': 'text',
+              'type': 'date',
               'icon': Icons.date_range,
             },
             {
               'name': 'location_id',
               'label': 'ID de la Location',
-              'type': 'number',
+              'type': 'dropdown',
               'icon': Icons.location_on,
+              'options_endpoint': 'locations',
+              'validator': (value) {
+                return null; // Optionnel
+              },
             },
           ],
           icon: Icons.payment,

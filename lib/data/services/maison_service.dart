@@ -71,6 +71,11 @@ class MaisonService extends BaseService {
 
   @override
   Future<dynamic> create(dynamic item) async {
+    if (item['agence_id'] == null || item['agence_id'].toString().isEmpty) {
+      throw Exception(
+          'Une agence doit être sélectionnée pour créer une maison.');
+    }
+
     final headers = await _getHeadersWithContentType();
     final sanitizedItem = {
       'ville': item['ville']?.toString() ?? '',
@@ -82,10 +87,13 @@ class MaisonService extends BaseService {
       'longitude_degrees': item['longitude_degrees'] ?? 0,
       'longitude_minutes': item['longitude_minutes'] ?? 0,
       'longitude_seconds': item['longitude_seconds'] ?? 0,
-      'agence_id': item['agence_id']?.toString() ?? '',
+      'agence_id': item['agence_id'].toString(),
       'coordonnees_point': item['coordonnees_point']?.toString() ?? '',
-      'etat_maison': (item['etat_maison']?.toString() ?? 'Disponible'),
+      'etat_maison': item['etat_maison']?.toString() ?? 'Disponible',
       'photos': item['photos'] != null ? List<String>.from(item['photos']) : [],
+      'loyer': item['loyer'] != null
+          ? int.tryParse(item['loyer'].toString()) ?? 0
+          : null,
     };
 
     final response = await http
@@ -124,6 +132,11 @@ class MaisonService extends BaseService {
 
   @override
   Future<dynamic> update(dynamic id, dynamic item) async {
+    if (item['agence_id'] == null || item['agence_id'].toString().isEmpty) {
+      throw Exception(
+          'Une agence doit être sélectionnée pour modifier une maison.');
+    }
+
     final headers = await _getHeadersWithContentType();
     final sanitizedItem = {
       'ville': item['ville']?.toString() ?? '',
@@ -135,10 +148,13 @@ class MaisonService extends BaseService {
       'longitude_degrees': item['longitude_degrees'] ?? 0,
       'longitude_minutes': item['longitude_minutes'] ?? 0,
       'longitude_seconds': item['longitude_seconds'] ?? 0,
-      'agence_id': item['agence_id']?.toString() ?? '',
+      'agence_id': item['agence_id'].toString(),
       'coordonnees_point': item['coordonnees_point']?.toString() ?? '',
-      'etat_maison': (item['etat_maison']?.toString() ?? 'Disponible'),
+      'etat_maison': item['etat_maison']?.toString() ?? 'Disponible',
       'photos': item['photos'] != null ? List<String>.from(item['photos']) : [],
+      'loyer': item['loyer'] != null
+          ? int.tryParse(item['loyer'].toString()) ?? 0
+          : null,
     };
 
     final response = await http
@@ -178,6 +194,11 @@ class MaisonService extends BaseService {
   @override
   Future<dynamic> createWithImage(dynamic item,
       {String? imagePath, String? imageField}) async {
+    if (item['agence_id'] == null || item['agence_id'].toString().isEmpty) {
+      throw Exception(
+          'Une agence doit être sélectionnée pour créer une maison.');
+    }
+
     final headers = await _getHeaders();
     var request =
         http.MultipartRequest('POST', Uri.parse('$baseUrl/api/maisons/'));
@@ -192,9 +213,12 @@ class MaisonService extends BaseService {
       'longitude_degrees': (item['longitude_degrees'] ?? 0).toString(),
       'longitude_minutes': (item['longitude_minutes'] ?? 0).toString(),
       'longitude_seconds': (item['longitude_seconds'] ?? 0).toString(),
-      'agence_id': item['agence_id']?.toString() ?? '',
+      'agence_id': item['agence_id'].toString(),
       'coordonnees_point': item['coordonnees_point']?.toString() ?? '',
-      'etat_maison': (item['etat_maison']?.toString() ?? 'Disponible'),
+      'etat_maison': item['etat_maison']?.toString() ?? 'Disponible',
+      'loyer': item['loyer'] != null
+          ? (int.tryParse(item['loyer'].toString()) ?? 0).toString()
+          : '',
     });
 
     if (imagePath != null && imageField != null) {
@@ -241,6 +265,11 @@ class MaisonService extends BaseService {
   @override
   Future<dynamic> updateWithImage(dynamic id, dynamic item,
       {String? imagePath, String? imageField}) async {
+    if (item['agence_id'] == null || item['agence_id'].toString().isEmpty) {
+      throw Exception(
+          'Une agence doit être sélectionnée pour modifier une maison.');
+    }
+
     final headers = await _getHeaders();
     var request =
         http.MultipartRequest('PUT', Uri.parse('$baseUrl/api/maisons/$id/'));
@@ -255,9 +284,12 @@ class MaisonService extends BaseService {
       'longitude_degrees': (item['longitude_degrees'] ?? 0).toString(),
       'longitude_minutes': (item['longitude_minutes'] ?? 0).toString(),
       'longitude_seconds': (item['longitude_seconds'] ?? 0).toString(),
-      'agence_id': item['agence_id']?.toString() ?? '',
+      'agence_id': item['agence_id'].toString(),
       'coordonnees_point': item['coordonnees_point']?.toString() ?? '',
-      'etat_maison': (item['etat_maison']?.toString() ?? 'Disponible'),
+      'etat_maison': item['etat_maison']?.toString() ?? 'Disponible',
+      'loyer': item['loyer'] != null
+          ? (int.tryParse(item['loyer'].toString()) ?? 0).toString()
+          : '',
     });
 
     if (imagePath != null && imageField != null) {

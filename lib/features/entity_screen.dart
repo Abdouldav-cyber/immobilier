@@ -118,6 +118,9 @@ class _EntityScreenState extends State<EntityScreen> {
             if (endpoint == 'agences') service = AgenceService();
             if (endpoint == 'maisons') service = MaisonService();
             if (endpoint == 'locations') service = LocationService();
+            if (endpoint == 'communes')
+              service =
+                  MaisonService(); // Utilisation de MaisonService pour communes (ajustable si nécessaire)
             final response = await service.getAll();
             if (response is List && response.isNotEmpty) {
               setState(() {
@@ -302,7 +305,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                 ? 'Modifier ${widget.title}'
                                 : 'Ajouter ${widget.title}',
                             style: TextStyle(
-                              fontSize: 24, // Remplacement de urchin28
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color: Colors.indigo[900],
                             ),
@@ -328,8 +331,10 @@ class _EntityScreenState extends State<EntityScreen> {
                               ].contains(field['name']))
                           .map((field) {
                         if (field['type'] == 'dropdown') {
-                          final options =
-                              optionsCache[field['options_endpoint']] ?? [];
+                          final options = field['options'] != null
+                              ? List<Map<String, dynamic>>.from(
+                                  field['options'])
+                              : optionsCache[field['options_endpoint']] ?? [];
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 20),
                             child: DropdownButtonFormField<String>(
@@ -360,17 +365,27 @@ class _EntityScreenState extends State<EntityScreen> {
                                     vertical: 16, horizontal: 16),
                               ),
                               value: formData[field['name']]?.toString(),
-                              items: options
-                                  .map((option) => DropdownMenuItem<String>(
-                                        value: option['id'],
-                                        child: Text(option['label'],
-                                            style: const TextStyle(
-                                                color: Colors.black87,
-                                                fontSize: 16)),
-                                      ))
-                                  .toList(),
-                              onChanged: (value) =>
-                                  formData[field['name']] = value,
+                              items: options.map((option) {
+                                final value = option['value']?.toString() ??
+                                    option['id']?.toString() ??
+                                    option.toString();
+                                final label = option['label']?.toString() ??
+                                    option['nom']?.toString() ??
+                                    value ??
+                                    'N/A';
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(label,
+                                      style: const TextStyle(
+                                          color: Colors.black87, fontSize: 16)),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  formData[field['name']] = value;
+                                }
+                              },
+                              validator: field['validator'],
                               dropdownColor: Colors.white,
                               icon: Icon(MdiIcons.chevronDown,
                                   color: Colors.indigo[700], size: 24),
@@ -687,108 +702,6 @@ class _EntityScreenState extends State<EntityScreen> {
                                 ),
                             ],
                           );
-                        } else if (field['name'] == 'etat_maison' &&
-                            widget.title == 'Maisons') {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 20),
-                            child: DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                labelText: field['label'],
-                                labelStyle: TextStyle(
-                                    color: Colors.indigo[900], fontSize: 16),
-                                prefixIcon: Icon(MdiIcons.home,
-                                    color: Colors.indigo[700], size: 24),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide:
-                                      BorderSide(color: Colors.indigo[200]!),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide(
-                                      color: Colors.indigo[900]!, width: 2),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide:
-                                      BorderSide(color: Colors.indigo[200]!),
-                                ),
-                                filled: true,
-                                fillColor: Colors.indigo[50],
-                                contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 16, horizontal: 16),
-                              ),
-                              value: formData[field['name']]?.toString(),
-                              items: ['Disponible', 'Occupé', 'En maintenance']
-                                  .map((state) => DropdownMenuItem<String>(
-                                        value: state,
-                                        child: Text(state,
-                                            style: const TextStyle(
-                                                color: Colors.black87,
-                                                fontSize: 16)),
-                                      ))
-                                  .toList(),
-                              onChanged: (value) =>
-                                  formData[field['name']] = value,
-                              dropdownColor: Colors.white,
-                              icon: Icon(MdiIcons.chevronDown,
-                                  color: Colors.indigo[700], size: 24),
-                              style: const TextStyle(
-                                  color: Colors.black87, fontSize: 16),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          );
-                        } else if (field['name'] == 'type_document' &&
-                            widget.title == 'Locations') {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 20),
-                            child: DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                labelText: field['label'],
-                                labelStyle: TextStyle(
-                                    color: Colors.indigo[900], fontSize: 16),
-                                prefixIcon: Icon(MdiIcons.fileDocument,
-                                    color: Colors.indigo[700], size: 24),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide:
-                                      BorderSide(color: Colors.indigo[200]!),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide(
-                                      color: Colors.indigo[900]!, width: 2),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide:
-                                      BorderSide(color: Colors.indigo[200]!),
-                                ),
-                                filled: true,
-                                fillColor: Colors.indigo[50],
-                                contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 16, horizontal: 16),
-                              ),
-                              value: formData[field['name']]?.toString(),
-                              items: ['CNI', 'Passeport', 'Permis de conduire']
-                                  .map((docType) => DropdownMenuItem<String>(
-                                        value: docType,
-                                        child: Text(docType,
-                                            style: const TextStyle(
-                                                color: Colors.black87,
-                                                fontSize: 16)),
-                                      ))
-                                  .toList(),
-                              onChanged: (value) =>
-                                  formData[field['name']] = value,
-                              dropdownColor: Colors.white,
-                              icon: Icon(MdiIcons.chevronDown,
-                                  color: Colors.indigo[700], size: 24),
-                              style: const TextStyle(
-                                  color: Colors.black87, fontSize: 16),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          );
                         } else {
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 20),
@@ -831,9 +744,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                   field['type'] == 'number'
                                       ? num.tryParse(value) ?? 0
                                       : value,
-                              validator: field['validator'] != null
-                                  ? (value) => field['validator']!(value)
-                                  : null,
+                              validator: field['validator'],
                             ),
                           );
                         }

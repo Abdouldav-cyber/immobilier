@@ -84,6 +84,16 @@ class MaisonsScreen extends EntityScreen {
               'options_endpoint': 'agences',
             },
             {
+              'name': 'commune_id',
+              'label': 'Commune',
+              'type': 'dropdown',
+              'icon': Icons.map,
+              'options_endpoint': 'communes',
+              'validator': (value) {
+                return null; // Optionnel
+              },
+            },
+            {
               'name': 'coordonnees_point',
               'label': 'Coordonnées du point',
               'type': 'text',
@@ -95,6 +105,21 @@ class MaisonsScreen extends EntityScreen {
                     return 'Format attendu : latitude, longitude (ex: 48.8566, 2.3522)';
                   }
                 }
+                return null; // Optionnel
+              },
+            },
+            {
+              'name': 'loyer',
+              'label': 'Loyer (en FCFA)',
+              'type': 'number',
+              'icon': Icons.monetization_on,
+              'validator': (value) {
+                if (value != null && value.isNotEmpty) {
+                  final parsedValue = int.tryParse(value);
+                  if (parsedValue == null || parsedValue < 0) {
+                    return 'Veuillez entrer un loyer valide (nombre positif)';
+                  }
+                }
                 return null;
               },
             },
@@ -103,6 +128,11 @@ class MaisonsScreen extends EntityScreen {
               'label': 'État de la maison',
               'type': 'dropdown',
               'icon': Icons.info,
+              'options': [
+                {'value': 'Disponible', 'label': 'Disponible'},
+                {'value': 'Occupé', 'label': 'Occupé'},
+                {'value': 'En maintenance', 'label': 'En maintenance'},
+              ],
             },
             {
               'name': 'photos',
