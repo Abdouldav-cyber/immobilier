@@ -149,50 +149,44 @@ class AuthService {
     }
   }
 
-  /// Simule une connexion avec Google (à implémenter réellement plus tard).
+  /// Simule une connexion avec Google.
   Future<Map<String, dynamic>> signInWithGoogle() async {
     try {
-      print(
-          'Début de l\'appel POST à $baseUrl/api/auth/google/ pour connexion Google');
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/api/auth/google/'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({
-              'access_token': 'google_access_token'
-            }), // À remplacer par un vrai token
-          )
-          .timeout(const Duration(seconds: 10));
+      print('Simulation de connexion avec Google');
+      // Simuler un délai pour imiter une requête réseau
+      await Future.delayed(const Duration(seconds: 2));
 
+      // Simuler une réponse réussie avec des données fictives
+      final simulatedData = {
+        'access':
+            'simulated_access_token_${DateTime.now().millisecondsSinceEpoch}',
+        'refresh':
+            'simulated_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
+      };
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_accessTokenKey, simulatedData['access']!);
+      await prefs.setString(_refreshTokenKey, simulatedData['refresh']!);
+      print('Token d\'accès simulé sauvegardé: ${simulatedData['access']}');
       print(
-          'Réponse API (POST /api/auth/google/): ${response.statusCode} - ${response.body}');
-      if (response.statusCode == 200) {
-        final data = _decodeJsonResponse(response);
-        if (!data.containsKey('access') || !data.containsKey('refresh')) {
-          throw Exception('Tokens non trouvés dans la réponse');
-        }
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_accessTokenKey, data['access']);
-        await prefs.setString(_refreshTokenKey, data['refresh']);
-        print('Token d\'accès sauvegardé: ${data['access']}');
-        print('Token de rafraîchissement sauvegardé: ${data['refresh']}');
-        final userData = await _fetchUserData(data['access']);
-        await prefs.setString(_userDataKey, jsonEncode(userData));
-        print('Données utilisateur stockées: $userData');
-        return {'success': true};
-      } else {
-        final errorData = _decodeJsonResponse(response);
-        final errorMessage =
-            errorData['detail'] ?? 'Erreur lors de la connexion Google';
-        print('Erreur de connexion Google: $errorMessage');
-        return {'success': false, 'error': errorMessage};
-      }
+          'Token de rafraîchissement simulé sauvegardé: ${simulatedData['refresh']}');
+
+      // Simuler les données utilisateur
+      final simulatedUserData = {
+        'username': 'google_user',
+        'email': 'google_user@example.com',
+        'agence_id': null,
+      };
+
+      await prefs.setString(_userDataKey, jsonEncode(simulatedUserData));
+      print('Données utilisateur simulées stockées: $simulatedUserData');
+      return {'success': true};
     } catch (e) {
-      print('Erreur réseau lors de la connexion Google: $e');
-      return {'success': false, 'error': 'Erreur réseau : $e'};
+      print('Erreur lors de la simulation de la connexion Google: $e');
+      return {
+        'success': false,
+        'error': 'Erreur lors de la simulation Google : $e'
+      };
     }
   }
 
@@ -211,8 +205,7 @@ class AuthService {
       final token = await getAccessToken();
       if (token != null) {
         final response = await http.post(
-          Uri.parse(
-              '$baseUrl/api/auth/logout/'), // Mise à jour de l'URL pour correspondre à dj-rest-auth
+          Uri.parse('$baseUrl/api/auth/logout/'),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',

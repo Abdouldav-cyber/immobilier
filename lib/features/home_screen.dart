@@ -13,6 +13,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String? _username;
+  bool _isSidebarVisible = true;
 
   @override
   void initState() {
@@ -38,93 +39,125 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _toggleSidebar() {
+    setState(() {
+      _isSidebarVisible = !_isSidebarVisible;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Row(
         children: [
-          // Sidebar permanente
-          Container(
-            width: 250,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.brown[900],
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  offset: Offset(2, 0),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                ListTile(
-                  leading: Icon(MdiIcons.menu, color: Colors.white),
-                  title: const Text(
-                    'Menu',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+          if (_isSidebarVisible)
+            Container(
+              width: MediaQuery.of(context).size.width * 0.2 > 250
+                  ? 250
+                  : MediaQuery.of(context).size.width * 0.2,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.teal[900],
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(2, 0),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  ListTile(
+                    leading: Icon(MdiIcons.menu, color: Colors.white),
+                    title: const Text(
+                      'Menu',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      _buildSidebarItem(
-                          Icons.home, 'Accueil', () => setState(() {}), true),
-                      _buildSidebarItem(Icons.view_agenda, 'Maisons',
-                          () => Navigator.pushNamed(context, Routes.maisons)),
-                      _buildSidebarItem(Icons.business, 'Agences',
-                          () => Navigator.pushNamed(context, Routes.agences)),
-                      _buildSidebarItem(Icons.location_on, 'Locations',
-                          () => Navigator.pushNamed(context, Routes.locations)),
-                      _buildSidebarItem(Icons.payment, 'Paiements',
-                          () => Navigator.pushNamed(context, Routes.paiements)),
-                      _buildSidebarItem(Icons.warning, 'Pénalités',
-                          () => Navigator.pushNamed(context, Routes.penalites)),
-                      _buildSidebarItem(
-                          Icons.settings,
-                          'Paramètres',
-                          () =>
-                              Navigator.pushNamed(context, Routes.parametres)),
-                      _buildSidebarItem(Icons.photo, 'Photos',
-                          () => Navigator.pushNamed(context, Routes.photos)),
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: Tooltip(
-                          message: 'Déconnexion',
-                          child: ListTile(
-                            leading:
-                                Icon(Icons.logout, color: Colors.grey[300]),
-                            title: Text(
-                              'Déconnexion',
-                              style: TextStyle(color: Colors.grey[300]),
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        _buildSidebarItem(
+                            Icons.home, 'Accueil', () => setState(() {}), true),
+                        _buildSidebarItem(Icons.view_agenda, 'Maisons', () {
+                          Navigator.pushNamed(context, Routes.maisons);
+                          setState(() {
+                            _isSidebarVisible = false;
+                          });
+                        }),
+                        _buildSidebarItem(Icons.business, 'Agences', () {
+                          Navigator.pushNamed(context, Routes.agences);
+                          setState(() {
+                            _isSidebarVisible = false;
+                          });
+                        }),
+                        _buildSidebarItem(Icons.location_on, 'Locations', () {
+                          Navigator.pushNamed(context, Routes.locations);
+                          setState(() {
+                            _isSidebarVisible = false;
+                          });
+                        }),
+                        _buildSidebarItem(Icons.payment, 'Paiements', () {
+                          Navigator.pushNamed(context, Routes.paiements);
+                          setState(() {
+                            _isSidebarVisible = false;
+                          });
+                        }),
+                        _buildSidebarItem(Icons.warning, 'Pénalités', () {
+                          Navigator.pushNamed(context, Routes.penalites);
+                          setState(() {
+                            _isSidebarVisible = false;
+                          });
+                        }),
+                        _buildSidebarItem(Icons.settings, 'Paramètres', () {
+                          Navigator.pushNamed(context, Routes.parametres);
+                          setState(() {
+                            _isSidebarVisible = false;
+                          });
+                        }),
+                        _buildSidebarItem(Icons.photo, 'Photos', () {
+                          Navigator.pushNamed(context, Routes.photos);
+                          setState(() {
+                            _isSidebarVisible = false;
+                          });
+                        }),
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: Tooltip(
+                            message: 'Déconnexion',
+                            child: ListTile(
+                              leading:
+                                  Icon(Icons.logout, color: Colors.grey[300]),
+                              title: Text(
+                                'Déconnexion',
+                                style: TextStyle(color: Colors.grey[300]),
+                              ),
+                              onTap: _logout,
                             ),
-                            onTap: _logout,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // Contenu principal
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Navbar (inchangée)
+                  // Navbar avec bouton hamburger
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.brown[600]!, Colors.brown[800]!],
+                        colors: [Colors.teal[600]!, Colors.teal[800]!],
                       ),
                     ),
                     child: Row(
@@ -136,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Text(
                               'Gestion Immo',
                               style: TextStyle(
-                                fontSize: 28,
+                                fontSize: 32,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
@@ -144,80 +177,71 @@ class _HomeScreenState extends State<HomeScreen> {
                             Text(
                               'Bienvenue, $_username',
                               style: const TextStyle(
-                                fontSize: 16,
+                                fontSize: 18,
                                 color: Colors.white70,
                               ),
                             ),
                           ],
                         ),
                         IconButton(
-                          icon: const Icon(Icons.notifications,
-                              color: Colors.white, size: 28),
-                          onPressed: () {},
+                          icon: const Icon(Icons.menu,
+                              color: Colors.white, size: 30),
+                          onPressed: _toggleSidebar,
                         ),
                       ],
                     ),
                   ),
-                  // Nouveau design du tableau de bord
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Tableau de bord',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.brown,
-                          ),
+                  // Tableau de bord avec icône moderne
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 40),
+                      Text(
+                        'Tableau de bord',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal[900],
                         ),
-                        const SizedBox(height: 20),
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(15),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.2),
-                                spreadRadius: 2,
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
+                      ),
+                      const SizedBox(height: 30),
+                      Container(
+                        width: 300,
+                        height: 300,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.teal[200]!, Colors.teal[600]!],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          child: Column(
-                            children: [
-                              const Text(
-                                'Bienvenue sur votre espace ImmoGest !',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.brown,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 20),
-                              Image.asset(
-                                'assets/dashboard_banner.png', // Remplacez par votre image d'accueil
-                                height: 200,
-                                fit: BoxFit.contain,
-                              ),
-                              const SizedBox(height: 20),
-                              const Text(
-                                'Gérez vos propriétés, paiements et plus encore depuis un seul endroit. Explorez les sections pour commencer.',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
+                          shape: BoxShape.circle,
                         ),
-                      ],
-                    ),
+                        child: Icon(
+                          Icons.home_work,
+                          size: 200,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      Text(
+                        'Bienvenue sur votre espace ImmoGest !',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal[900],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Gérez vos propriétés, paiements et plus encore depuis un seul endroit. Explorez les sections pour commencer.',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[700],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -245,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           onTap: onTap,
-          tileColor: isSelected ? Colors.brown[600] : null,
+          tileColor: isSelected ? Colors.teal[600] : null,
         ),
       ),
     );

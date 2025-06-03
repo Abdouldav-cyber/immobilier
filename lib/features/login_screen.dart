@@ -1,4 +1,3 @@
-// TODO Implement this library.
 import 'package:flutter/material.dart';
 import 'package:gestion_immo/core/config/constants/routes.dart';
 import 'package:gestion_immo/data/services/auth_service.dart';
@@ -13,6 +12,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = '';
     });
     print(
-        'Tentative d\'inscription avec email: ${_emailController.text}, username: ${_emailController.text}');
+        'Tentative d\'inscription avec email: ${_emailController.text}, username: ${_usernameController.text}');
 
     if (_passwordController.text != _confirmPasswordController.text) {
       setState(() {
@@ -79,8 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final response = await _authService.register(
         email: _emailController.text,
-        username: _emailController
-            .text, // Utilisation de l'email comme username temporaire
+        username: _usernameController.text,
         password: _passwordController.text,
       );
 
@@ -145,32 +144,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-    print('Tentative de connexion avec Google');
-
-    try {
-      await _authService.signInWithGoogle();
-      print('Connexion Google réussie');
-      Navigator.pushReplacementNamed(context, Routes.home);
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erreur lors de la connexion Google : $e';
-        print('Erreur lors de la connexion Google: $e');
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
   @override
   void dispose() {
     _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -182,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue.shade900, Colors.blue.shade500],
+            colors: [Colors.purple[800]!, Colors.indigo[400]!],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -190,19 +167,24 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width * 0.1,
+                vertical: 24.0,
+              ),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(30),
+                width: MediaQuery.of(context).size.width * 0.8 > 600
+                    ? 600
+                    : MediaQuery.of(context).size.width * 0.8,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.95),
-                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(25),
                   boxShadow: const [
                     BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 15,
-                      offset: Offset(0, 8),
+                      color: Colors.black38,
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
                     ),
                   ],
                 ),
@@ -212,21 +194,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     Hero(
                       tag: 'logo',
                       child: Icon(
-                        Icons.home,
-                        size: 80,
-                        color: Colors.blue.shade900,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Bienvenue sur ImmoGest',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
+                        Icons.account_circle,
+                        size: 100,
+                        color: Colors.purple[800],
                       ),
                     ),
                     const SizedBox(height: 30),
+                    Text(
+                      'Veuillez vous connecter',
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.purple[800],
+                      ),
+                    ),
+                    const SizedBox(height: 40),
                     if (_isResetPasswordMode ||
                         _showRegister ||
                         _errorMessage.contains('réinitialisation')) ...[
@@ -235,16 +217,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: InputDecoration(
                           labelText: 'Email',
                           prefixIcon:
-                              Icon(Icons.email, color: Colors.blue.shade900),
+                              Icon(Icons.email, color: Colors.purple[800]),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(15),
                           ),
                           filled: true,
                           fillColor: Colors.grey[100],
                         ),
                         keyboardType: TextInputType.emailAddress,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                     ],
                     if (!_isResetPasswordMode &&
                         !_errorMessage.contains('réinitialisation')) ...[
@@ -253,28 +235,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: InputDecoration(
                           labelText: 'Email',
                           prefixIcon:
-                              Icon(Icons.email, color: Colors.blue.shade900),
+                              Icon(Icons.email, color: Colors.purple[800]),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(15),
                           ),
                           filled: true,
                           fillColor: Colors.grey[100],
                         ),
                         keyboardType: TextInputType.emailAddress,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       TextField(
                         controller: _passwordController,
                         decoration: InputDecoration(
                           labelText: 'Mot de passe',
                           prefixIcon:
-                              Icon(Icons.lock, color: Colors.blue.shade900),
+                              Icon(Icons.lock, color: Colors.purple[800]),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility
                                   : Icons.visibility_off,
-                              color: Colors.blue.shade900,
+                              color: Colors.purple[800],
                             ),
                             onPressed: () {
                               setState(() {
@@ -283,7 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(15),
                           ),
                           filled: true,
                           fillColor: Colors.grey[100],
@@ -291,19 +273,34 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: _obscurePassword,
                       ),
                       if (_showRegister) ...[
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _usernameController,
+                          decoration: InputDecoration(
+                            labelText: 'Username',
+                            prefixIcon:
+                                Icon(Icons.person, color: Colors.purple[800]),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                          ),
+                          keyboardType: TextInputType.text,
+                        ),
+                        const SizedBox(height: 20),
                         TextField(
                           controller: _confirmPasswordController,
                           decoration: InputDecoration(
                             labelText: 'Confirmer le mot de passe',
                             prefixIcon: Icon(Icons.lock_outline,
-                                color: Colors.blue.shade900),
+                                color: Colors.purple[800]),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscureConfirmPassword
                                     ? Icons.visibility
                                     : Icons.visibility_off,
-                                color: Colors.blue.shade900,
+                                color: Colors.purple[800],
                               ),
                               onPressed: () {
                                 setState(() {
@@ -313,7 +310,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               },
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(15),
                             ),
                             filled: true,
                             fillColor: Colors.grey[100],
@@ -321,7 +318,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: _obscureConfirmPassword,
                         ),
                       ],
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 15),
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
@@ -334,44 +331,44 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           child: Text(
                             'Mot de passe oublié ?',
-                            style: TextStyle(color: Colors.blue.shade900),
+                            style: TextStyle(color: Colors.purple[800]),
                           ),
                         ),
                       ),
                     ],
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 25),
                     if (_errorMessage.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(vertical: 10.0),
                         child: Text(
                           _errorMessage,
                           style: const TextStyle(color: Colors.red),
                           textAlign: TextAlign.center,
                         ),
                       ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 25),
                     _isLoading
-                        ? CircularProgressIndicator(color: Colors.blue.shade900)
+                        ? CircularProgressIndicator(color: Colors.purple[800])
                         : Column(
                             children: [
                               if (_isResetPasswordMode) ...[
                                 ElevatedButton(
                                   onPressed: _resetPassword,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue.shade900,
+                                    backgroundColor: Colors.purple[800],
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 40, vertical: 16),
+                                        horizontal: 50, vertical: 18),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(15),
                                     ),
                                   ),
                                   child: const Text(
                                     'Réinitialiser le mot de passe',
-                                    style: TextStyle(fontSize: 16),
+                                    style: TextStyle(fontSize: 18),
                                   ),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 15),
                                 TextButton(
                                   onPressed: () {
                                     setState(() {
@@ -382,45 +379,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                   },
                                   child: Text(
                                     'Retour à la connexion',
-                                    style:
-                                        TextStyle(color: Colors.blue.shade900),
+                                    style: TextStyle(color: Colors.purple[800]),
                                   ),
                                 ),
                               ] else ...[
                                 ElevatedButton(
                                   onPressed: _showRegister ? _register : _login,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue.shade900,
+                                    backgroundColor: Colors.purple[800],
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 40, vertical: 16),
+                                        horizontal: 50, vertical: 18),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(15),
                                     ),
                                   ),
                                   child: Text(
                                     _showRegister
                                         ? 'S\'inscrire'
                                         : 'Se connecter',
-                                    style: const TextStyle(fontSize: 16),
+                                    style: const TextStyle(fontSize: 18),
                                   ),
                                 ),
-                                const SizedBox(height: 10),
-                                ElevatedButton.icon(
-                                  onPressed: _signInWithGoogle,
-                                  icon: const Icon(Icons.account_circle),
-                                  label: const Text('Connexion avec Google'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.blue.shade900,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 40, vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 15),
                                 TextButton(
                                   onPressed: () {
                                     setState(() {
@@ -429,14 +410,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                       _emailController.clear();
                                       _passwordController.clear();
                                       _confirmPasswordController.clear();
+                                      _usernameController.clear();
                                     });
                                   },
                                   child: Text(
                                     _showRegister
                                         ? 'Déjà un compte ? Se connecter'
                                         : 'Pas de compte ? S\'inscrire',
-                                    style:
-                                        TextStyle(color: Colors.blue.shade900),
+                                    style: TextStyle(color: Colors.purple[800]),
                                   ),
                                 ),
                               ],
