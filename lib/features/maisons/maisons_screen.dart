@@ -41,57 +41,11 @@ class MaisonsScreen extends EntityScreen {
               },
             },
             {
-              'name': 'latitude_degrees',
-              'label': 'Latitude (Degrés)',
-              'type': 'number',
-              'icon': Icons.gps_fixed,
-            },
-            {
-              'name': 'latitude_minutes',
-              'label': 'Latitude (Minutes)',
-              'type': 'number',
-              'icon': Icons.gps_fixed,
-            },
-            {
-              'name': 'latitude_seconds',
-              'label': 'Latitude (Secondes)',
-              'type': 'number',
-              'icon': Icons.gps_fixed,
-            },
-            {
-              'name': 'longitude_degrees',
-              'label': 'Longitude (Degrés)',
-              'type': 'number',
-              'icon': Icons.gps_fixed,
-            },
-            {
-              'name': 'longitude_minutes',
-              'label': 'Longitude (Minutes)',
-              'type': 'number',
-              'icon': Icons.gps_fixed,
-            },
-            {
-              'name': 'longitude_seconds',
-              'label': 'Longitude (Secondes)',
-              'type': 'number',
-              'icon': Icons.gps_fixed,
-            },
-            {
               'name': 'agence_id',
               'label': 'Agence',
               'type': 'dropdown',
               'icon': Icons.business,
               'options_endpoint': 'agences',
-            },
-            {
-              'name': 'commune_id',
-              'label': 'Commune',
-              'type': 'dropdown',
-              'icon': Icons.map,
-              'options_endpoint': 'communes',
-              'validator': (value) {
-                return null; // Optionnel
-              },
             },
             {
               'name': 'coordonnees_point',

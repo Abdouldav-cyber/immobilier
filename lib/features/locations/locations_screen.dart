@@ -41,18 +41,11 @@ class LocationsScreen extends EntityScreen {
               'type': 'number',
               'icon': Icons.attach_money,
             },
-            // Nouveaux champs ajoutés
             {
               'name': 'date',
               'label': 'Date',
               'type': 'date',
               'icon': MdiIcons.calendar,
-            },
-            {
-              'name': 'type_document',
-              'label': 'Type de document',
-              'type': 'dropdown',
-              'icon': MdiIcons.fileDocument,
             },
             {
               'name': 'nom_client',

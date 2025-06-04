@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_immo/core/config/constants/routes.dart';
 import 'package:gestion_immo/data/services/auth_service.dart';
-import 'package:gestion_immo/features/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -144,6 +143,36 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+    print('Tentative de connexion avec Google');
+
+    try {
+      final result = await _authService.signInWithGoogle();
+      if (result['success']) {
+        print('Connexion Google réussie, navigation vers la page d\'accueil');
+        Navigator.pushReplacementNamed(context, Routes.home);
+      } else {
+        setState(() {
+          _errorMessage = result['error'] ?? 'Erreur de connexion avec Google';
+          print('Erreur de connexion Google: $_errorMessage');
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Erreur réseau : $e';
+        print('Erreur réseau lors de la connexion Google: $e');
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -210,7 +239,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 40),
                     if (_isResetPasswordMode ||
-                        _showRegister ||
                         _errorMessage.contains('réinitialisation')) ...[
                       TextField(
                         controller: _emailController,
@@ -245,6 +273,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 20),
+                      if (_showRegister) ...[
+                        TextField(
+                          controller: _usernameController,
+                          decoration: InputDecoration(
+                            labelText: 'Username',
+                            prefixIcon:
+                                Icon(Icons.person, color: Colors.purple[800]),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                          ),
+                          keyboardType: TextInputType.text,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                       TextField(
                         controller: _passwordController,
                         decoration: InputDecoration(
@@ -273,21 +318,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: _obscurePassword,
                       ),
                       if (_showRegister) ...[
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _usernameController,
-                          decoration: InputDecoration(
-                            labelText: 'Username',
-                            prefixIcon:
-                                Icon(Icons.person, color: Colors.purple[800]),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[100],
-                          ),
-                          keyboardType: TextInputType.text,
-                        ),
                         const SizedBox(height: 20),
                         TextField(
                           controller: _confirmPasswordController,
@@ -399,6 +429,25 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ? 'S\'inscrire'
                                         : 'Se connecter',
                                     style: const TextStyle(fontSize: 18),
+                                  ),
+                                ),
+                                const SizedBox(height: 15),
+                                ElevatedButton.icon(
+                                  onPressed: _signInWithGoogle,
+                                  icon: Icon(Icons.account_circle,
+                                      color: Colors.white),
+                                  label: const Text(
+                                    'Connexion avec Google',
+                                    style: TextStyle(fontSize: 18),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red[600],
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 50, vertical: 18),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 15),

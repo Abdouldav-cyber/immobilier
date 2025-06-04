@@ -34,6 +34,8 @@ class EntityScreen extends StatefulWidget {
 
 class _EntityScreenState extends State<EntityScreen> {
   List<dynamic> items = [];
+  int _rowsPerPage = 10;
+  int _currentPage = 0;
   bool isLoading = false;
   String? errorMessage;
   Map<String, List<Map<String, dynamic>>> optionsCache = {};
@@ -45,6 +47,7 @@ class _EntityScreenState extends State<EntityScreen> {
   DateTime? selectedDateFin;
   DateTime? selectedDate;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _isSidebarVisible = true;
 
   @override
   void initState() {
@@ -118,9 +121,6 @@ class _EntityScreenState extends State<EntityScreen> {
             if (endpoint == 'agences') service = AgenceService();
             if (endpoint == 'maisons') service = MaisonService();
             if (endpoint == 'locations') service = LocationService();
-            if (endpoint == 'communes')
-              service =
-                  MaisonService(); // Utilisation de MaisonService pour communes (ajustable si nécessaire)
             final response = await service.getAll();
             if (response is List && response.isNotEmpty) {
               setState(() {
@@ -190,7 +190,6 @@ class _EntityScreenState extends State<EntityScreen> {
     if (confirmDelete == true) {
       try {
         await widget.service.delete(id);
-        setState(() => selectedItem = null);
         fetchItems();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -307,7 +306,7 @@ class _EntityScreenState extends State<EntityScreen> {
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Colors.indigo[900],
+                              color: Colors.teal[900],
                             ),
                           ),
                           IconButton(
@@ -320,14 +319,14 @@ class _EntityScreenState extends State<EntityScreen> {
                       const SizedBox(height: 24),
                       ...widget.fields
                           .where((field) => ![
-                                'latitude',
-                                'longitude',
                                 'latitude_degrees',
                                 'latitude_minutes',
                                 'latitude_seconds',
                                 'longitude_degrees',
                                 'longitude_minutes',
-                                'longitude_seconds'
+                                'longitude_seconds',
+                                'commune_id',
+                                'type_document'
                               ].contains(field['name']))
                           .map((field) {
                         if (field['type'] == 'dropdown') {
@@ -341,26 +340,26 @@ class _EntityScreenState extends State<EntityScreen> {
                               decoration: InputDecoration(
                                 labelText: field['label'],
                                 labelStyle: TextStyle(
-                                    color: Colors.indigo[900], fontSize: 16),
+                                    color: Colors.teal[900], fontSize: 16),
                                 prefixIcon: Icon(field['icon'],
-                                    color: Colors.indigo[700], size: 24),
+                                    color: Colors.teal[700], size: 24),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide:
-                                      BorderSide(color: Colors.indigo[200]!),
+                                      BorderSide(color: Colors.teal[200]!),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: BorderSide(
-                                      color: Colors.indigo[900]!, width: 2),
+                                      color: Colors.teal[900]!, width: 2),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide:
-                                      BorderSide(color: Colors.indigo[200]!),
+                                      BorderSide(color: Colors.teal[200]!),
                                 ),
                                 filled: true,
-                                fillColor: Colors.indigo[50],
+                                fillColor: Colors.teal[50],
                                 contentPadding: const EdgeInsets.symmetric(
                                     vertical: 16, horizontal: 16),
                               ),
@@ -388,7 +387,7 @@ class _EntityScreenState extends State<EntityScreen> {
                               validator: field['validator'],
                               dropdownColor: Colors.white,
                               icon: Icon(MdiIcons.chevronDown,
-                                  color: Colors.indigo[700], size: 24),
+                                  color: Colors.teal[700], size: 24),
                               style: const TextStyle(
                                   color: Colors.black87, fontSize: 16),
                               borderRadius: BorderRadius.circular(16),
@@ -406,9 +405,9 @@ class _EntityScreenState extends State<EntityScreen> {
                                   lastDate: DateTime(2100),
                                   builder: (context, child) => Theme(
                                     data: ThemeData.light().copyWith(
-                                      primaryColor: Colors.indigo[700],
+                                      primaryColor: Colors.teal[700],
                                       colorScheme: ColorScheme.light(
-                                          primary: Colors.indigo[700]!),
+                                          primary: Colors.teal[700]!),
                                       buttonTheme: const ButtonThemeData(
                                           textTheme: ButtonTextTheme.primary),
                                     ),
@@ -435,17 +434,16 @@ class _EntityScreenState extends State<EntityScreen> {
                               },
                               child: Container(
                                 decoration: BoxDecoration(
-                                  border:
-                                      Border.all(color: Colors.indigo[200]!),
+                                  border: Border.all(color: Colors.teal[200]!),
                                   borderRadius: BorderRadius.circular(16),
-                                  color: Colors.indigo[50],
+                                  color: Colors.teal[50],
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 16),
                                 child: Row(
                                   children: [
                                     Icon(MdiIcons.calendar,
-                                        color: Colors.indigo[700], size: 24),
+                                        color: Colors.teal[700], size: 24),
                                     const SizedBox(width: 12),
                                     Text(
                                       field['name'] == 'date_debut'
@@ -474,14 +472,14 @@ class _EntityScreenState extends State<EntityScreen> {
                               Row(
                                 children: [
                                   Icon(field['icon'],
-                                      color: Colors.indigo[700], size: 24),
+                                      color: Colors.teal[700], size: 24),
                                   const SizedBox(width: 12),
                                   Text(
                                     field['label'],
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.indigo[900],
+                                      color: Colors.teal[900],
                                     ),
                                   ),
                                 ],
@@ -516,9 +514,9 @@ class _EntityScreenState extends State<EntityScreen> {
                                                     Center(
                                                         child:
                                                             CircularProgressIndicator(
-                                                                color: Colors
-                                                                        .indigo[
-                                                                    700])),
+                                                                color:
+                                                                    Colors.teal[
+                                                                        700])),
                                                 errorWidget: (context, url,
                                                         error) =>
                                                     Center(
@@ -642,14 +640,14 @@ class _EntityScreenState extends State<EntityScreen> {
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 16)),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.indigo[700],
+                                    backgroundColor: Colors.teal[700],
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(12)),
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 24, vertical: 14),
                                     elevation: 6,
-                                    shadowColor: Colors.indigo[900],
+                                    shadowColor: Colors.teal[900],
                                   ),
                                 ),
                               if (widget.title == 'Maisons')
@@ -666,38 +664,14 @@ class _EntityScreenState extends State<EntityScreen> {
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 16)),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.indigo[700],
+                                    backgroundColor: Colors.teal[700],
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(12)),
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 24, vertical: 14),
                                     elevation: 6,
-                                    shadowColor: Colors.indigo[900],
-                                  ),
-                                ),
-                              if (widget.title == 'Photos')
-                                ElevatedButton.icon(
-                                  onPressed: () async {
-                                    await _pickImage(isLogo: true);
-                                    if (selectedLogoPath != null) {
-                                      formData['photo'] = selectedLogoPath;
-                                    }
-                                  },
-                                  icon: Icon(MdiIcons.imagePlus,
-                                      color: Colors.white, size: 20),
-                                  label: const Text('Charger une photo',
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 16)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.indigo[700],
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 24, vertical: 14),
-                                    elevation: 6,
-                                    shadowColor: Colors.indigo[900],
+                                    shadowColor: Colors.teal[900],
                                   ),
                                 ),
                             ],
@@ -712,26 +686,26 @@ class _EntityScreenState extends State<EntityScreen> {
                               decoration: InputDecoration(
                                 labelText: field['label'],
                                 labelStyle: TextStyle(
-                                    color: Colors.indigo[900], fontSize: 16),
+                                    color: Colors.teal[900], fontSize: 16),
                                 prefixIcon: Icon(field['icon'] ?? MdiIcons.text,
-                                    color: Colors.indigo[700], size: 24),
+                                    color: Colors.teal[700], size: 24),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide:
-                                      BorderSide(color: Colors.indigo[200]!),
+                                      BorderSide(color: Colors.teal[200]!),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: BorderSide(
-                                      color: Colors.indigo[900]!, width: 2),
+                                      color: Colors.teal[900]!, width: 2),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide:
-                                      BorderSide(color: Colors.indigo[200]!),
+                                      BorderSide(color: Colors.teal[200]!),
                                 ),
                                 filled: true,
-                                fillColor: Colors.indigo[50],
+                                fillColor: Colors.teal[50],
                                 contentPadding: const EdgeInsets.symmetric(
                                     vertical: 16, horizontal: 16),
                               ),
@@ -781,7 +755,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                                 BorderRadius.circular(15)),
                                         title: Text('Confirmer modification',
                                             style: TextStyle(
-                                                color: Colors.indigo[900])),
+                                                color: Colors.teal[900])),
                                         content: Text(
                                             'Voulez-vous modifier cet élément ?',
                                             style: TextStyle(
@@ -799,7 +773,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                                 Navigator.pop(context, true),
                                             child: Text('Oui',
                                                 style: TextStyle(
-                                                    color: Colors.indigo[900])),
+                                                    color: Colors.teal[900])),
                                           ),
                                         ],
                                       ),
@@ -848,14 +822,14 @@ class _EntityScreenState extends State<EntityScreen> {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.indigo[700],
+                              backgroundColor: Colors.teal[700],
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 32, vertical: 16),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
                               elevation: 6,
-                              shadowColor: Colors.indigo[900],
+                              shadowColor: Colors.teal[900],
                             ),
                             child: Text(isEditing ? 'Modifier' : 'Ajouter',
                                 style: const TextStyle(
@@ -866,6 +840,183 @@ class _EntityScreenState extends State<EntityScreen> {
                     ],
                   ),
                 ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDetailsDialog(Map<String, dynamic> item) async {
+    await showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        elevation: 10,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          width: MediaQuery.of(context).size.width * 0.9,
+          constraints: const BoxConstraints(
+            minWidth: 400,
+            maxWidth: 800,
+            minHeight: 300,
+            maxHeight: 750,
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Détails de l\'${widget.title.toLowerCase()}',
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal[700]),
+                      ),
+                      IconButton(
+                        icon: Icon(MdiIcons.close, color: Colors.grey[700]),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ...widget.fields
+                      .where((field) => ![
+                            'logo',
+                            'photos',
+                            'latitude_degrees',
+                            'latitude_minutes',
+                            'latitude_seconds',
+                            'longitude_degrees',
+                            'longitude_minutes',
+                            'longitude_seconds',
+                            'commune_id',
+                            'type_document'
+                          ].contains(field['name']))
+                      .map((field) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${field['label']}: ',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.teal[900]),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    item[field['name']]?.toString() ?? '',
+                                    style:
+                                        const TextStyle(color: Colors.black87),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                  if (item['logo'] != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Logo:',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal[900])),
+                        const SizedBox(height: 5),
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: CachedNetworkImage(
+                              imageUrl: item['logo'],
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Center(
+                                  child: CircularProgressIndicator(
+                                      color: Colors.teal[700])),
+                              errorWidget: (context, url, error) => Center(
+                                  child: Icon(MdiIcons.alertCircle,
+                                      color: Colors.redAccent, size: 40)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (item['photos'] != null &&
+                      (item['photos'] as List).isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Photos:',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal[900])),
+                        const SizedBox(height: 5),
+                        SizedBox(
+                          height: 120,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: (item['photos'] as List).length,
+                            itemBuilder: (context, index) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: CachedNetworkImage(
+                                      imageUrl: item['photos'][index],
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Center(
+                                          child: CircularProgressIndicator(
+                                              color: Colors.teal[700])),
+                                      errorWidget: (context, url, error) =>
+                                          Center(
+                                              child: Icon(MdiIcons.alertCircle,
+                                                  color: Colors.redAccent,
+                                                  size: 40)),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
               ),
             ),
           ),
@@ -942,14 +1093,19 @@ class _EntityScreenState extends State<EntityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.grey[50],
       body: Row(
         children: [
-          Container(
-            width: 250,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: _isSidebarVisible ? 250 : 0,
             height: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.teal[900],
+              gradient: LinearGradient(
+                colors: [Colors.teal[900]!, Colors.teal[700]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
@@ -958,522 +1114,441 @@ class _EntityScreenState extends State<EntityScreen> {
                 ),
               ],
             ),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                ListTile(
-                  leading: Icon(MdiIcons.menu, color: Colors.white),
-                  title: Text(
-                    'Menu',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildSidebarItem(Icons.home, 'Accueil',
-                            () => Navigator.pushNamed(context, Routes.home)),
-                        _buildSidebarItem(Icons.view_agenda, 'Maisons',
-                            () => Navigator.pushNamed(context, Routes.maisons)),
-                        _buildSidebarItem(Icons.business, 'Agences',
-                            () => Navigator.pushNamed(context, Routes.agences)),
-                        _buildSidebarItem(
-                            Icons.location_on,
-                            'Locations',
-                            () =>
-                                Navigator.pushNamed(context, Routes.locations)),
-                        _buildSidebarItem(
-                            Icons.payment,
-                            'Paiements',
-                            () =>
-                                Navigator.pushNamed(context, Routes.paiements)),
-                        _buildSidebarItem(
-                            Icons.warning,
-                            'Pénalités',
-                            () =>
-                                Navigator.pushNamed(context, Routes.penalites)),
-                        _buildSidebarItem(Icons.photo, 'Photos',
-                            () => Navigator.pushNamed(context, Routes.photos)),
-                        _buildSidebarItem(
-                            Icons.settings,
-                            'Paramètres',
-                            () => Navigator.pushNamed(
-                                context, Routes.parametres)),
-                        _buildSidebarItem(widget.icon, widget.title,
-                            () => setState(() {}), true),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            child: _isSidebarVisible
+                ? Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      ListTile(
+                        leading: Icon(MdiIcons.menu, color: Colors.white),
+                        title: Text(
+                          'Menu',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        onTap: () {
+                          setState(() {
+                            _isSidebarVisible = !_isSidebarVisible;
+                          });
+                        },
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildSidebarItem(
+                                  Icons.home,
+                                  'Accueil',
+                                  () => Navigator.pushNamed(
+                                      context, Routes.home)),
+                              _buildSidebarItem(
+                                  Icons.view_agenda,
+                                  'Maisons',
+                                  () => Navigator.pushNamed(
+                                      context, Routes.maisons)),
+                              _buildSidebarItem(
+                                  Icons.business,
+                                  'Agences',
+                                  () => Navigator.pushNamed(
+                                      context, Routes.agences)),
+                              _buildSidebarItem(
+                                  Icons.location_on,
+                                  'Locations',
+                                  () => Navigator.pushNamed(
+                                      context, Routes.locations)),
+                              _buildSidebarItem(
+                                  Icons.payment,
+                                  'Paiements',
+                                  () => Navigator.pushNamed(
+                                      context, Routes.paiements)),
+                              _buildSidebarItem(
+                                  Icons.warning,
+                                  'Pénalités',
+                                  () => Navigator.pushNamed(
+                                      context, Routes.penalites)),
+                              _buildSidebarItem(
+                                  Icons.settings,
+                                  'Paramètres',
+                                  () => Navigator.pushNamed(
+                                      context, Routes.parametres)),
+                              _buildSidebarItem(widget.icon, widget.title,
+                                  () => setState(() {}), true),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
           ),
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 15),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(colors: [
-                                Colors.teal[600]!,
-                                Colors.teal[800]!
-                              ]),
-                              borderRadius: BorderRadius.circular(15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 8,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(widget.title,
-                                    style: const TextStyle(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white)),
-                                IconButton(
-                                  icon: const Icon(Icons.refresh,
-                                      color: Colors.white),
-                                  onPressed: fetchItems,
-                                ),
-                              ],
-                            ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 15),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.teal[600]!, Colors.teal[800]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: Offset(0, 4),
                           ),
-                          const SizedBox(height: 20),
-                          isLoading
-                              ? Center(
-                                  child: CircularProgressIndicator(
-                                      color: Colors.teal[700]))
-                              : errorMessage != null
-                                  ? Center(
-                                      child: Text(errorMessage!,
-                                          style: TextStyle(
-                                              color: Colors.red[700])))
-                                  : items.isEmpty
-                                      ? Center(
-                                          child: Column(
-                                            children: [
-                                              const SizedBox(height: 50),
-                                              Icon(widget.icon,
-                                                  size: 80,
-                                                  color: Colors.grey[400]),
-                                              const SizedBox(height: 10),
-                                              Text('Aucune donnée',
-                                                  style: TextStyle(
-                                                      fontSize: 18,
-                                                      color: Colors.grey[600])),
-                                            ],
-                                          ),
-                                        )
-                                      : SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          child: DataTable(
-                                            columnSpacing: 20,
-                                            headingRowColor:
-                                                MaterialStateColor.resolveWith(
-                                                    (states) =>
-                                                        Colors.teal[100]!),
-                                            dataRowColor:
-                                                MaterialStateColor.resolveWith(
-                                                    (states) => Colors.white),
-                                            border: TableBorder(
-                                              horizontalInside: BorderSide(
-                                                  color: Colors.grey[200]!),
-                                              verticalInside: BorderSide(
-                                                  color: Colors.grey[200]!),
-                                            ),
-                                            columns: [
-                                              DataColumn(
-                                                  label: Text('N°',
-                                                      style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Colors
-                                                              .teal[900]))),
-                                              ...widget.fields
-                                                  .where((field) => ![
-                                                        'logo',
-                                                        'photos'
-                                                      ].contains(field['name']))
-                                                  .map((field) => DataColumn(
-                                                      label: Text(
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(MdiIcons.menu, color: Colors.white),
+                                onPressed: () {
+                                  setState(() {
+                                    _isSidebarVisible = !_isSidebarVisible;
+                                  });
+                                },
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                widget.title,
+                                style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon:
+                                const Icon(Icons.refresh, color: Colors.white),
+                            onPressed: fetchItems,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showFormDialog(),
+                        icon: Icon(MdiIcons.plusThick,
+                            size: 20, color: Colors.white),
+                        label: Text('Ajouter ${widget.title}',
+                            style: const TextStyle(
+                                fontSize: 16, color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 25, vertical: 15),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 5,
+                          shadowColor: Colors.teal[900],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    isLoading
+                        ? Center(
+                            child: CircularProgressIndicator(
+                                color: Colors.teal[700]))
+                        : errorMessage != null
+                            ? Center(
+                                child: Text(errorMessage!,
+                                    style: TextStyle(color: Colors.red[700])))
+                            : items.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      children: [
+                                        const SizedBox(height: 50),
+                                        Icon(widget.icon,
+                                            size: 80, color: Colors.grey[400]),
+                                        const SizedBox(height: 10),
+                                        Text('Aucune donnée',
+                                            style: TextStyle(
+                                                fontSize: 18,
+                                                color: Colors.grey[600])),
+                                      ],
+                                    ),
+                                  )
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.teal[50],
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: Colors.teal[200]!),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            ...widget.fields
+                                                .where((field) => ![
+                                                      'logo',
+                                                      'photos',
+                                                      'latitude_degrees',
+                                                      'latitude_minutes',
+                                                      'latitude_seconds',
+                                                      'longitude_degrees',
+                                                      'longitude_minutes',
+                                                      'longitude_seconds',
+                                                      'commune_id',
+                                                      'type_document'
+                                                    ].contains(field['name']))
+                                                .map((field) => Expanded(
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(12),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          border: Border(
+                                                              right: BorderSide(
+                                                                  color: Colors
+                                                                          .teal[
+                                                                      200]!)),
+                                                        ),
+                                                        child: Text(
                                                           field['label'],
                                                           style: TextStyle(
                                                               fontWeight:
                                                                   FontWeight
                                                                       .bold,
                                                               color: Colors
-                                                                  .teal[900]))))
-                                                  .toList(),
-                                              DataColumn(
-                                                  label: Text('Actions',
-                                                      style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Colors
-                                                              .teal[900]))),
-                                            ],
-                                            rows: items
+                                                                  .teal[900]),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          maxLines: 1,
+                                                        ),
+                                                      ),
+                                                    )),
+                                            Container(
+                                              padding: const EdgeInsets.all(12),
+                                              width: 120,
+                                              decoration: BoxDecoration(
+                                                border: Border(
+                                                    left: BorderSide(
+                                                        color:
+                                                            Colors.teal[200]!)),
+                                              ),
+                                              child: Text(
+                                                'Actions',
+                                                style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.teal[900]),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        itemCount: (items.length / _rowsPerPage)
+                                            .ceil(),
+                                        itemBuilder: (context, pageIndex) {
+                                          final start =
+                                              pageIndex * _rowsPerPage;
+                                          final end = (start + _rowsPerPage)
+                                              .clamp(0, items.length);
+                                          final pageItems =
+                                              items.sublist(start, end);
+                                          return Column(
+                                            children: pageItems
                                                 .asMap()
                                                 .entries
                                                 .map((entry) {
                                               final index = entry.key;
                                               final item = entry.value;
-                                              return DataRow(
-                                                cells: [
-                                                  DataCell(Text('${index + 1}',
-                                                      style: const TextStyle(
-                                                          color:
-                                                              Colors.black87))),
-                                                  ...widget.fields
-                                                      .where((field) => ![
-                                                            'logo',
-                                                            'photos'
-                                                          ].contains(
-                                                              field['name']))
-                                                      .map((field) => DataCell(Text(
-                                                          item[field['name']]
-                                                                  ?.toString() ??
-                                                              '',
-                                                          style: const TextStyle(
-                                                              color: Colors
-                                                                  .black87))))
-                                                      .toList(),
-                                                  DataCell(Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
+                                              return MouseRegion(
+                                                cursor:
+                                                    SystemMouseCursors.click,
+                                                child: AnimatedContainer(
+                                                  duration: const Duration(
+                                                      milliseconds: 200),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    border: Border(
+                                                      bottom: BorderSide(
+                                                          color: Colors
+                                                              .grey[300]!),
+                                                      left: BorderSide(
+                                                          color: Colors
+                                                              .grey[300]!),
+                                                      right: BorderSide(
+                                                          color: Colors
+                                                              .grey[300]!),
+                                                    ),
+                                                  ),
+                                                  child: Row(
                                                     children: [
-                                                      IconButton(
-                                                        icon: Icon(Icons.edit,
-                                                            color: Colors
-                                                                .blue[700]),
-                                                        onPressed: () =>
-                                                            _showFormDialog(
-                                                                item: item),
-                                                      ),
-                                                      if (widget.title ==
-                                                              'Locations' &&
-                                                          item['active'] ==
-                                                              true)
-                                                        IconButton(
-                                                          icon: Icon(
-                                                              MdiIcons.closeBox,
-                                                              color: Colors
-                                                                  .orange[700]),
-                                                          onPressed: () {
-                                                            final id =
-                                                                int.tryParse(item[
-                                                                            'id']
-                                                                        .toString()) ??
-                                                                    0;
-                                                            final maisonId =
-                                                                int.tryParse(item[
-                                                                            'maison_id']
-                                                                        .toString()) ??
-                                                                    0;
-                                                            if (id == 0 ||
-                                                                maisonId == 0) {
-                                                              ScaffoldMessenger
-                                                                      .of(context)
-                                                                  .showSnackBar(
-                                                                const SnackBar(
-                                                                  content: Text(
-                                                                      'ID ou maison_id invalide pour la clôture'),
-                                                                  backgroundColor:
-                                                                      Colors
-                                                                          .redAccent,
-                                                                ),
-                                                              );
-                                                              return;
-                                                            }
-                                                            _cloturerLocation(
-                                                                id, maisonId);
-                                                          },
-                                                        ),
-                                                      IconButton(
-                                                        icon: Icon(Icons.delete,
-                                                            color: Colors
-                                                                .red[700]),
-                                                        onPressed: () {
-                                                          final id =
-                                                              int.tryParse(item[
-                                                                          'id']
-                                                                      .toString()) ??
-                                                                  0;
-                                                          if (id == 0) {
-                                                            ScaffoldMessenger
-                                                                    .of(context)
-                                                                .showSnackBar(
-                                                              const SnackBar(
-                                                                content: Text(
-                                                                    'ID invalide pour la suppression'),
-                                                                backgroundColor:
-                                                                    Colors
-                                                                        .redAccent,
+                                                      ...widget.fields
+                                                          .where((field) => ![
+                                                                'logo',
+                                                                'photos',
+                                                                'latitude_degrees',
+                                                                'latitude_minutes',
+                                                                'latitude_seconds',
+                                                                'longitude_degrees',
+                                                                'longitude_minutes',
+                                                                'longitude_seconds',
+                                                                'commune_id',
+                                                                'type_document'
+                                                              ].contains(field[
+                                                                  'name']))
+                                                          .map(
+                                                              (field) =>
+                                                                  Expanded(
+                                                                    child:
+                                                                        Container(
+                                                                      padding: const EdgeInsets
+                                                                          .all(
+                                                                          12),
+                                                                      decoration:
+                                                                          BoxDecoration(
+                                                                        border: Border(
+                                                                            right:
+                                                                                BorderSide(color: Colors.grey[300]!)),
+                                                                      ),
+                                                                      child:
+                                                                          Text(
+                                                                        item[field['name']]?.toString() ??
+                                                                            '',
+                                                                        style: const TextStyle(
+                                                                            color:
+                                                                                Colors.black87,
+                                                                            fontSize: 14),
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                        maxLines:
+                                                                            1,
+                                                                      ),
+                                                                    ),
+                                                                  )),
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(12),
+                                                        width: 120,
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            IconButton(
+                                                              icon: Icon(
+                                                                  Icons.edit,
+                                                                  color: Colors
+                                                                          .blue[
+                                                                      700],
+                                                                  size: 20),
+                                                              onPressed: () =>
+                                                                  _showFormDialog(
+                                                                      item:
+                                                                          item),
+                                                            ),
+                                                            if (widget.title ==
+                                                                    'Locations' &&
+                                                                item['active'] ==
+                                                                    true)
+                                                              IconButton(
+                                                                icon: Icon(
+                                                                    MdiIcons
+                                                                        .closeBox,
+                                                                    color: Colors
+                                                                            .orange[
+                                                                        700],
+                                                                    size: 20),
+                                                                onPressed: () {
+                                                                  final id =
+                                                                      int.tryParse(
+                                                                              item['id'].toString()) ??
+                                                                          0;
+                                                                  final maisonId =
+                                                                      int.tryParse(
+                                                                              item['maison_id'].toString()) ??
+                                                                          0;
+                                                                  if (id == 0 ||
+                                                                      maisonId ==
+                                                                          0) {
+                                                                    ScaffoldMessenger.of(
+                                                                            context)
+                                                                        .showSnackBar(
+                                                                      const SnackBar(
+                                                                        content:
+                                                                            Text('ID ou maison_id invalide pour la clôture'),
+                                                                        backgroundColor:
+                                                                            Colors.redAccent,
+                                                                      ),
+                                                                    );
+                                                                    return;
+                                                                  }
+                                                                  _cloturerLocation(
+                                                                      id,
+                                                                      maisonId);
+                                                                },
                                                               ),
-                                                            );
-                                                            return;
-                                                          }
-                                                          _deleteItem(id);
-                                                        },
+                                                            IconButton(
+                                                              icon: Icon(
+                                                                  Icons.delete,
+                                                                  color: Colors
+                                                                      .red[700],
+                                                                  size: 20),
+                                                              onPressed: () {
+                                                                final id = int.tryParse(
+                                                                        item['id']
+                                                                            .toString()) ??
+                                                                    0;
+                                                                if (id == 0) {
+                                                                  ScaffoldMessenger.of(
+                                                                          context)
+                                                                      .showSnackBar(
+                                                                    const SnackBar(
+                                                                      content: Text(
+                                                                          'ID invalide pour la suppression'),
+                                                                      backgroundColor:
+                                                                          Colors
+                                                                              .redAccent,
+                                                                    ),
+                                                                  );
+                                                                  return;
+                                                                }
+                                                                _deleteItem(id);
+                                                              },
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
                                                     ],
-                                                  )),
-                                                ],
-                                                onSelectChanged: (selected) {
-                                                  if (selected == true) {
-                                                    setState(() {
-                                                      selectedItem = item;
-                                                    });
-                                                  }
-                                                },
+                                                  ),
+                                                ),
                                               );
                                             }).toList(),
-                                          ),
-                                        ),
-                          const SizedBox(height: 20),
-                          Center(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _showFormDialog(),
-                              icon: Icon(MdiIcons.plus,
-                                  size: 20, color: Colors.white),
-                              label: Text('Ajouter ${widget.title}',
-                                  style: const TextStyle(
-                                      fontSize: 16, color: Colors.white)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal[700],
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 25, vertical: 15),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                elevation: 5,
-                                shadowColor: Colors.teal[900],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (selectedItem != null)
-                      Expanded(
-                        flex: 1,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 16),
-                          child: Card(
-                            elevation: 6,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15)),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Détails de l\'${widget.title.toLowerCase()}',
-                                          style: TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.teal[700]),
-                                        ),
-                                        IconButton(
-                                          icon: Icon(MdiIcons.close,
-                                              color: Colors.grey[700]),
-                                          onPressed: () => setState(
-                                              () => selectedItem = null),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    ...widget.fields
-                                        .where((field) => !['logo', 'photos']
-                                            .contains(field['name']))
-                                        .map((field) => Padding(
-                                              padding: const EdgeInsets.only(
-                                                  bottom: 10),
-                                              child: Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    '${field['label']}: ',
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color:
-                                                            Colors.teal[900]),
-                                                  ),
-                                                  Expanded(
-                                                    child: Text(
-                                                      selectedItem![
-                                                                  field['name']]
-                                                              ?.toString() ??
-                                                          '',
-                                                      style: const TextStyle(
-                                                          color:
-                                                              Colors.black87),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ))
-                                        .toList(),
-                                    if (selectedItem!['logo'] != null)
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Logo:',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.teal[900])),
-                                          const SizedBox(height: 5),
-                                          Container(
-                                            width: 120,
-                                            height: 120,
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black12,
-                                                  blurRadius: 6,
-                                                  offset: Offset(0, 3),
-                                                ),
-                                              ],
-                                            ),
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              child: CachedNetworkImage(
-                                                imageUrl: selectedItem!['logo'],
-                                                fit: BoxFit.cover,
-                                                placeholder: (context, url) =>
-                                                    Center(
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                                color:
-                                                                    Colors.teal[
-                                                                        700])),
-                                                errorWidget: (context, url,
-                                                        error) =>
-                                                    Center(
-                                                        child: Icon(
-                                                            MdiIcons
-                                                                .alertCircle,
-                                                            color: Colors
-                                                                .redAccent,
-                                                            size: 40)),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                          );
+                                        },
                                       ),
-                                    if (selectedItem!['photos'] != null &&
-                                        (selectedItem!['photos'] as List)
-                                            .isNotEmpty)
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Photos:',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.teal[900])),
-                                          const SizedBox(height: 5),
-                                          SizedBox(
-                                            height: 120,
-                                            child: ListView.builder(
-                                              scrollDirection: Axis.horizontal,
-                                              itemCount:
-                                                  (selectedItem!['photos']
-                                                          as List)
-                                                      .length,
-                                              itemBuilder: (context, index) {
-                                                return Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          right: 12),
-                                                  child: Container(
-                                                    width: 120,
-                                                    height: 120,
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              16),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: Colors.black12,
-                                                          blurRadius: 6,
-                                                          offset: Offset(0, 3),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    child: ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              16),
-                                                      child: CachedNetworkImage(
-                                                        imageUrl: selectedItem![
-                                                            'photos'][index],
-                                                        fit: BoxFit.cover,
-                                                        placeholder: (context,
-                                                                url) =>
-                                                            Center(
-                                                                child: CircularProgressIndicator(
-                                                                    color: Colors
-                                                                            .teal[
-                                                                        700])),
-                                                        errorWidget: (context,
-                                                                url, error) =>
-                                                            Center(
-                                                                child: Icon(
-                                                                    MdiIcons
-                                                                        .alertCircle,
-                                                                    color: Colors
-                                                                        .redAccent,
-                                                                    size: 40)),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                                    ],
+                                  ),
                   ],
                 ),
               ),

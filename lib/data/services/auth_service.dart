@@ -149,43 +149,35 @@ class AuthService {
     }
   }
 
-  /// Simule une connexion avec Google.
+  /// Simule la connexion avec Google.
   Future<Map<String, dynamic>> signInWithGoogle() async {
     try {
-      print('Simulation de connexion avec Google');
-      // Simuler un délai pour imiter une requête réseau
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Simuler une réponse réussie avec des données fictives
-      final simulatedData = {
-        'access':
-            'simulated_access_token_${DateTime.now().millisecondsSinceEpoch}',
-        'refresh':
-            'simulated_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
-      };
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_accessTokenKey, simulatedData['access']!);
-      await prefs.setString(_refreshTokenKey, simulatedData['refresh']!);
-      print('Token d\'accès simulé sauvegardé: ${simulatedData['access']}');
-      print(
-          'Token de rafraîchissement simulé sauvegardé: ${simulatedData['refresh']}');
-
-      // Simuler les données utilisateur
+      print('Simulation de la connexion avec Google');
+      // Simule une connexion Google réussie
+      final simulatedAccessToken = 'simulated_google_access_token';
+      final simulatedRefreshToken = 'simulated_google_refresh_token';
       final simulatedUserData = {
-        'username': 'google_user',
-        'email': 'google_user@example.com',
+        'username': 'GoogleUser',
+        'email': 'googleuser@example.com',
         'agence_id': null,
       };
 
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_accessTokenKey, simulatedAccessToken);
+      await prefs.setString(_refreshTokenKey, simulatedRefreshToken);
       await prefs.setString(_userDataKey, jsonEncode(simulatedUserData));
+
+      print('Token d\'accès Google simulé sauvegardé: $simulatedAccessToken');
+      print(
+          'Token de rafraîchissement Google simulé sauvegardé: $simulatedRefreshToken');
       print('Données utilisateur simulées stockées: $simulatedUserData');
+
       return {'success': true};
     } catch (e) {
       print('Erreur lors de la simulation de la connexion Google: $e');
       return {
         'success': false,
-        'error': 'Erreur lors de la simulation Google : $e'
+        'error': 'Erreur lors de la simulation Google: $e'
       };
     }
   }

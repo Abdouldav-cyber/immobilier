@@ -4,7 +4,7 @@ class User {
   final String email;
   final String firstName;
   final String lastName;
-  final String? agenceId; // Ajout du champ agence_id
+  final String? agenceId;
 
   User({
     required this.pk,
