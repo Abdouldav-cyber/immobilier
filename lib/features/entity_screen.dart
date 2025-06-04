@@ -38,7 +38,7 @@ class _EntityScreenState extends State<EntityScreen> {
   int _currentPage = 0;
   bool isLoading = false;
   String? errorMessage;
-  Map<String, List<Map<String, dynamic>>> optionsCache = {};
+  Map<String, List<Map<String, String>>> optionsCache = {};
   String? currentUserAgenceId;
   String? selectedLogoPath;
   List<String>? selectedPhotoPaths;
@@ -106,7 +106,9 @@ class _EntityScreenState extends State<EntityScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Erreur: $e'), backgroundColor: Colors.redAccent),
+          content: Text('Erreur: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -126,12 +128,12 @@ class _EntityScreenState extends State<EntityScreen> {
               setState(() {
                 optionsCache[endpoint] = (response as List<dynamic>)
                     .map((item) => {
-                          'id': item['id'].toString(),
+                          'id': item['id']?.toString() ?? '',
                           'label': item['nom']?.toString() ??
                               item['numero']?.toString() ??
                               item['locataire']?.toString() ??
                               'N/A',
-                          'agence_id': item['agence_id']?.toString(),
+                          'agence_id': item['agence_id']?.toString() ?? '',
                         })
                     .toList();
               });
@@ -143,8 +145,9 @@ class _EntityScreenState extends State<EntityScreen> {
             });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                  content: Text('Erreur options: $e'),
-                  backgroundColor: Colors.redAccent),
+                content: Text('Erreur options: $e'),
+                backgroundColor: Colors.redAccent,
+              ),
             );
           }
         }
@@ -159,8 +162,9 @@ class _EntityScreenState extends State<EntityScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Erreur lors de la déconnexion: $e'),
-            backgroundColor: Colors.redAccent),
+          content: Text('Erreur lors de la déconnexion: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -173,7 +177,7 @@ class _EntityScreenState extends State<EntityScreen> {
         title: Text('Confirmer la suppression',
             style:
                 TextStyle(color: Colors.red[700], fontWeight: FontWeight.bold)),
-        content: Text('Voulez-vous vraiment supprimer cet élément ?',
+        content: const Text('Voulez-vous vraiment supprimer cet élément ?',
             style: TextStyle(color: Colors.black87)),
         actions: [
           TextButton(
@@ -193,14 +197,16 @@ class _EntityScreenState extends State<EntityScreen> {
         fetchItems();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Élément supprimé avec succès'),
-              backgroundColor: Colors.green[600]),
+            content: const Text('Élément supprimé avec succès'),
+            backgroundColor: Colors.green[600],
+          ),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Erreur suppression: $e'),
-              backgroundColor: Colors.redAccent),
+            content: Text('Erreur suppression: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -231,15 +237,16 @@ class _EntityScreenState extends State<EntityScreen> {
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('Permission refusée'),
-                backgroundColor: Colors.redAccent),
+            const SnackBar(
+              content: Text('Permission refusée'),
+              backgroundColor: Colors.redAccent,
+            ),
           );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
+            content: const Text(
                 'La sélection de photos n\'est pas supportée sur le web. Utilisez un appareil mobile.'),
             backgroundColor: Colors.yellow[700],
           ),
@@ -248,10 +255,19 @@ class _EntityScreenState extends State<EntityScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Erreur lors de la sélection de l\'image: $e'),
-            backgroundColor: Colors.redAccent),
+          content: Text('Erreur lors de la sélection de l\'image: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
+  }
+
+  String? _wrapValidator(dynamic validator, String? value) {
+    if (validator == null) return null;
+    if (validator is String? Function(String?)) {
+      return validator(value);
+    }
+    return 'Validateur non supporté';
   }
 
   Future<void> _showFormDialog({dynamic item}) async {
@@ -260,14 +276,23 @@ class _EntityScreenState extends State<EntityScreen> {
     selectedLogoPath = formData['logo'];
     selectedPhotoPaths =
         formData['photos'] != null ? List<String>.from(formData['photos']) : [];
-    selectedDateDebut = formData['date_debut'] != null
-        ? DateTime.parse(formData['date_debut'])
-        : null;
-    selectedDateFin = formData['date_fin'] != null
-        ? DateTime.parse(formData['date_fin'])
-        : null;
-    selectedDate =
-        formData['date'] != null ? DateTime.parse(formData['date']) : null;
+    try {
+      selectedDateDebut = formData['date_debut'] != null
+          ? DateTime.parse(formData['date_debut'])
+          : null;
+      selectedDateFin = formData['date_fin'] != null
+          ? DateTime.parse(formData['date_fin'])
+          : null;
+      selectedDate =
+          formData['date'] != null ? DateTime.parse(formData['date']) : null;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors du parsing des dates: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
 
     await showDialog(
       context: context,
@@ -365,13 +390,12 @@ class _EntityScreenState extends State<EntityScreen> {
                               ),
                               value: formData[field['name']]?.toString(),
                               items: options.map((option) {
-                                final value = option['value']?.toString() ??
-                                    option['id']?.toString() ??
-                                    option.toString();
+                                final value = option['id']?.toString() ??
+                                    option['value']?.toString() ??
+                                    '';
                                 final label = option['label']?.toString() ??
                                     option['nom']?.toString() ??
-                                    value ??
-                                    'N/A';
+                                    value;
                                 return DropdownMenuItem<String>(
                                   value: value,
                                   child: Text(label,
@@ -384,7 +408,10 @@ class _EntityScreenState extends State<EntityScreen> {
                                   formData[field['name']] = value;
                                 }
                               },
-                              validator: field['validator'],
+                              validator: field['validator'] != null
+                                  ? (value) =>
+                                      _wrapValidator(field['validator'], value)
+                                  : null,
                               dropdownColor: Colors.white,
                               icon: Icon(MdiIcons.chevronDown,
                                   color: Colors.teal[700], size: 24),
@@ -495,7 +522,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                       height: 120,
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(16),
-                                        boxShadow: [
+                                        boxShadow: const [
                                           BoxShadow(
                                             color: Colors.black12,
                                             blurRadius: 6,
@@ -558,7 +585,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                 ),
                               if (widget.title == 'Maisons' &&
                                   selectedPhotoPaths != null &&
-                                  selectedPhotoPaths!.isNotEmpty) ...[
+                                  selectedPhotoPaths!.isNotEmpty)
                                 SizedBox(
                                   height: 120,
                                   child: ListView.builder(
@@ -576,7 +603,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                               decoration: BoxDecoration(
                                                 borderRadius:
                                                     BorderRadius.circular(16),
-                                                boxShadow: [
+                                                boxShadow: const [
                                                   BoxShadow(
                                                     color: Colors.black12,
                                                     blurRadius: 6,
@@ -624,7 +651,6 @@ class _EntityScreenState extends State<EntityScreen> {
                                     },
                                   ),
                                 ),
-                              ],
                               const SizedBox(height: 12),
                               if (widget.title == 'Agences')
                                 ElevatedButton.icon(
@@ -718,7 +744,10 @@ class _EntityScreenState extends State<EntityScreen> {
                                   field['type'] == 'number'
                                       ? num.tryParse(value) ?? 0
                                       : value,
-                              validator: field['validator'],
+                              validator: field['validator'] != null
+                                  ? (value) =>
+                                      _wrapValidator(field['validator'], value)
+                                  : null,
                             ),
                           );
                         }
@@ -756,7 +785,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                         title: Text('Confirmer modification',
                                             style: TextStyle(
                                                 color: Colors.teal[900])),
-                                        content: Text(
+                                        content: const Text(
                                             'Voulez-vous modifier cet élément ?',
                                             style: TextStyle(
                                                 color: Colors.black87)),
@@ -788,18 +817,19 @@ class _EntityScreenState extends State<EntityScreen> {
                                   } else if (widget.title == 'Agences' &&
                                       selectedLogoPath != null) {
                                     await widget.service.createWithImage(
-                                        formData,
-                                        imagePath: selectedLogoPath,
-                                        imageField: 'logo');
+                                      formData,
+                                      imagePath: selectedLogoPath,
+                                      imageField: 'logo',
+                                    );
                                   } else if (widget.title == 'Maisons' &&
                                       selectedPhotoPaths != null) {
                                     await widget.service.createWithImage(
-                                        formData,
-                                        imagePath:
-                                            selectedPhotoPaths!.isNotEmpty
-                                                ? selectedPhotoPaths![0]
-                                                : null,
-                                        imageField: 'photos');
+                                      formData,
+                                      imagePath: selectedPhotoPaths!.isNotEmpty
+                                          ? selectedPhotoPaths![0]
+                                          : null,
+                                      imageField: 'photos',
+                                    );
                                   } else {
                                     await widget.service.create(formData);
                                   }
@@ -815,8 +845,9 @@ class _EntityScreenState extends State<EntityScreen> {
                                 } catch (e) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                        content: Text('Erreur: $e'),
-                                        backgroundColor: Colors.redAccent),
+                                      content: Text('Erreur: $e'),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
                                   );
                                 }
                               }
@@ -840,183 +871,6 @@ class _EntityScreenState extends State<EntityScreen> {
                     ],
                   ),
                 ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showDetailsDialog(Map<String, dynamic> item) async {
-    await showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        elevation: 10,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          width: MediaQuery.of(context).size.width * 0.9,
-          constraints: const BoxConstraints(
-            minWidth: 400,
-            maxWidth: 800,
-            minHeight: 300,
-            maxHeight: 750,
-          ),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Détails de l\'${widget.title.toLowerCase()}',
-                        style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal[700]),
-                      ),
-                      IconButton(
-                        icon: Icon(MdiIcons.close, color: Colors.grey[700]),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  ...widget.fields
-                      .where((field) => ![
-                            'logo',
-                            'photos',
-                            'latitude_degrees',
-                            'latitude_minutes',
-                            'latitude_seconds',
-                            'longitude_degrees',
-                            'longitude_minutes',
-                            'longitude_seconds',
-                            'commune_id',
-                            'type_document'
-                          ].contains(field['name']))
-                      .map((field) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${field['label']}: ',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.teal[900]),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    item[field['name']]?.toString() ?? '',
-                                    style:
-                                        const TextStyle(color: Colors.black87),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ))
-                      .toList(),
-                  if (item['logo'] != null)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Logo:',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.teal[900])),
-                        const SizedBox(height: 5),
-                        Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: CachedNetworkImage(
-                              imageUrl: item['logo'],
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Center(
-                                  child: CircularProgressIndicator(
-                                      color: Colors.teal[700])),
-                              errorWidget: (context, url, error) => Center(
-                                  child: Icon(MdiIcons.alertCircle,
-                                      color: Colors.redAccent, size: 40)),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  if (item['photos'] != null &&
-                      (item['photos'] as List).isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Photos:',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.teal[900])),
-                        const SizedBox(height: 5),
-                        SizedBox(
-                          height: 120,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: (item['photos'] as List).length,
-                            itemBuilder: (context, index) {
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black12,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: CachedNetworkImage(
-                                      imageUrl: item['photos'][index],
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => Center(
-                                          child: CircularProgressIndicator(
-                                              color: Colors.teal[700])),
-                                      errorWidget: (context, url, error) =>
-                                          Center(
-                                              child: Icon(MdiIcons.alertCircle,
-                                                  color: Colors.redAccent,
-                                                  size: 40)),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
               ),
             ),
           ),
@@ -1052,13 +906,16 @@ class _EntityScreenState extends State<EntityScreen> {
         fetchItems();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: const Text('Location clôturée avec succès'),
-              backgroundColor: Colors.green[600]),
+            content: const Text('Location clôturée avec succès'),
+            backgroundColor: Colors.green[600],
+          ),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Erreur: $e'), backgroundColor: Colors.redAccent),
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -1085,6 +942,288 @@ class _EntityScreenState extends State<EntityScreen> {
           tileColor: isSelected ? Colors.teal[700] : null,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+    );
+  }
+
+  String _getDisplayValue(
+      Map<String, dynamic> item, Map<String, dynamic> field) {
+    final fieldName = field['name'];
+    final rawValue = item[fieldName];
+    if (rawValue == null) return 'Non spécifié';
+    if (field['type'] == 'dropdown' && field['options_endpoint'] != null) {
+      final endpoint = field['options_endpoint'];
+      if (optionsCache.containsKey(endpoint)) {
+        final option = optionsCache[endpoint]!.firstWhere(
+          (opt) => opt['id'] == rawValue.toString(),
+          orElse: () =>
+              {'id': '', 'label': rawValue.toString(), 'agence_id': ''},
+        );
+        return option['label'] ?? rawValue.toString();
+      }
+    }
+    return rawValue.toString();
+  }
+
+  IconData _getFieldIcon(Map<String, dynamic> field) {
+    switch (field['name']) {
+      case 'nom':
+        return MdiIcons.account;
+      case 'adresse':
+        return MdiIcons.mapMarker;
+      case 'telephone':
+        return MdiIcons.phone;
+      case 'email':
+        return MdiIcons.email;
+      case 'date_debut':
+      case 'date_fin':
+      case 'date':
+        return MdiIcons.calendar;
+      case 'numero':
+        return MdiIcons.numeric;
+      case 'montant':
+        return MdiIcons.currencyUsd;
+      case 'description':
+        return MdiIcons.textBox;
+      default:
+        return field['icon'] ?? MdiIcons.information;
+    }
+  }
+
+  void _showDetailsPage(Map<String, dynamic> item) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.teal[900],
+            title: Text(
+              'Détails de ${widget.title.toLowerCase()}',
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            leading: IconButton(
+              icon: Icon(MdiIcons.arrowLeft, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.teal[50]!, Colors.white],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 24.0),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Card(
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            widget.title.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal[900],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Divider(color: Colors.teal, thickness: 2),
+                          const SizedBox(height: 16),
+                          ...widget.fields.map((field) {
+                            final value = _getDisplayValue(item, field);
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    _getFieldIcon(field),
+                                    color: Colors.teal[700],
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${field['label']}:',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.teal[900],
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          value,
+                                          style: const TextStyle(
+                                            color: Colors.black87,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          if (item['logo'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 24.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(MdiIcons.image,
+                                          color: Colors.teal[700], size: 24),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Logo:',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.teal[900],
+                                            fontSize: 16),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    width: 200,
+                                    height: 200,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                            color: Colors.black26,
+                                            blurRadius: 8,
+                                            offset: Offset(0, 4))
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: CachedNetworkImage(
+                                        imageUrl: item['logo'],
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Center(
+                                            child: CircularProgressIndicator(
+                                                color: Colors.teal[700])),
+                                        errorWidget: (context, url, error) =>
+                                            Center(
+                                                child: Icon(
+                                                    MdiIcons.alertCircleOutline,
+                                                    color: Colors.redAccent,
+                                                    size: 40)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (item['photos'] != null &&
+                              (item['photos'] as List).isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 24.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(MdiIcons.imageMultiple,
+                                          color: Colors.teal[700], size: 24),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Photos:',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.teal[900],
+                                            fontSize: 16),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    height: 200,
+                                    child: ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount:
+                                          (item['photos'] as List).length,
+                                      itemBuilder: (context, index) {
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(right: 12),
+                                          child: Container(
+                                            width: 200,
+                                            height: 200,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              boxShadow: const [
+                                                BoxShadow(
+                                                    color: Colors.black26,
+                                                    blurRadius: 8,
+                                                    offset: Offset(0, 4))
+                                              ],
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              child: CachedNetworkImage(
+                                                imageUrl: item['photos'][index],
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                                color:
+                                                                    Colors.teal[
+                                                                        700])),
+                                                errorWidget: (context, url,
+                                                        error) =>
+                                                    Center(
+                                                        child: Icon(
+                                                            MdiIcons
+                                                                .alertCircleOutline,
+                                                            color: Colors
+                                                                .redAccent,
+                                                            size: 40)),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -1120,13 +1259,12 @@ class _EntityScreenState extends State<EntityScreen> {
                       const SizedBox(height: 20),
                       ListTile(
                         leading: Icon(MdiIcons.menu, color: Colors.white),
-                        title: Text(
+                        title: const Text(
                           'Menu',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18),
                         ),
                         onTap: () {
                           setState(() {
@@ -1378,105 +1516,148 @@ class _EntityScreenState extends State<EntityScreen> {
                                                 .asMap()
                                                 .entries
                                                 .map((entry) {
-                                              final index = entry.key;
                                               final item = entry.value;
                                               return MouseRegion(
                                                 cursor:
                                                     SystemMouseCursors.click,
-                                                child: AnimatedContainer(
-                                                  duration: const Duration(
-                                                      milliseconds: 200),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    border: Border(
-                                                      bottom: BorderSide(
-                                                          color: Colors
-                                                              .grey[300]!),
-                                                      left: BorderSide(
-                                                          color: Colors
-                                                              .grey[300]!),
-                                                      right: BorderSide(
-                                                          color: Colors
-                                                              .grey[300]!),
+                                                child: GestureDetector(
+                                                  onTap: () =>
+                                                      _showDetailsPage(item),
+                                                  child: AnimatedContainer(
+                                                    duration: const Duration(
+                                                        milliseconds: 200),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      border: Border(
+                                                        bottom: BorderSide(
+                                                            color: Colors
+                                                                .grey[300]!),
+                                                        left: BorderSide(
+                                                            color: Colors
+                                                                .grey[300]!),
+                                                        right: BorderSide(
+                                                            color: Colors
+                                                                .grey[300]!),
+                                                      ),
                                                     ),
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      ...widget.fields
-                                                          .where((field) => ![
-                                                                'logo',
-                                                                'photos',
-                                                                'latitude_degrees',
-                                                                'latitude_minutes',
-                                                                'latitude_seconds',
-                                                                'longitude_degrees',
-                                                                'longitude_minutes',
-                                                                'longitude_seconds',
-                                                                'commune_id',
-                                                                'type_document'
-                                                              ].contains(field[
-                                                                  'name']))
-                                                          .map(
+                                                    child: Row(
+                                                      children: [
+                                                        ...widget.fields
+                                                            .where((field) => ![
+                                                                  'logo',
+                                                                  'photos',
+                                                                  'latitude_degrees',
+                                                                  'latitude_minutes',
+                                                                  'latitude_seconds',
+                                                                  'longitude_degrees',
+                                                                  'longitude_minutes',
+                                                                  'longitude_seconds',
+                                                                  'commune_id',
+                                                                  'type_document'
+                                                                ].contains(field[
+                                                                    'name']))
+                                                            .map(
                                                               (field) =>
                                                                   Expanded(
-                                                                    child:
-                                                                        Container(
-                                                                      padding: const EdgeInsets
+                                                                child:
+                                                                    Container(
+                                                                  padding:
+                                                                      const EdgeInsets
                                                                           .all(
                                                                           12),
-                                                                      decoration:
-                                                                          BoxDecoration(
-                                                                        border: Border(
-                                                                            right:
-                                                                                BorderSide(color: Colors.grey[300]!)),
-                                                                      ),
-                                                                      child:
-                                                                          Text(
-                                                                        item[field['name']]?.toString() ??
-                                                                            '',
-                                                                        style: const TextStyle(
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    border: Border(
+                                                                        right: BorderSide(
                                                                             color:
-                                                                                Colors.black87,
-                                                                            fontSize: 14),
-                                                                        overflow:
-                                                                            TextOverflow.ellipsis,
-                                                                        maxLines:
-                                                                            1,
-                                                                      ),
-                                                                    ),
-                                                                  )),
-                                                      Container(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(12),
-                                                        width: 120,
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            IconButton(
-                                                              icon: Icon(
-                                                                  Icons.edit,
-                                                                  color: Colors
-                                                                          .blue[
-                                                                      700],
-                                                                  size: 20),
-                                                              onPressed: () =>
-                                                                  _showFormDialog(
-                                                                      item:
-                                                                          item),
+                                                                                Colors.grey[300]!)),
+                                                                  ),
+                                                                  child: Text(
+                                                                    _getDisplayValue(
+                                                                        item,
+                                                                        field),
+                                                                    style: const TextStyle(
+                                                                        color: Colors
+                                                                            .black87,
+                                                                        fontSize:
+                                                                            14),
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    maxLines: 1,
+                                                                  ),
+                                                                ),
+                                                              ),
                                                             ),
-                                                            if (widget.title ==
-                                                                    'Locations' &&
-                                                                item['active'] ==
-                                                                    true)
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(12),
+                                                          width: 120,
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
                                                               IconButton(
                                                                 icon: Icon(
-                                                                    MdiIcons
-                                                                        .closeBox,
+                                                                    Icons.edit,
                                                                     color: Colors
-                                                                            .orange[
+                                                                            .blue[
+                                                                        700],
+                                                                    size: 20),
+                                                                onPressed: () =>
+                                                                    _showFormDialog(
+                                                                        item:
+                                                                            item),
+                                                              ),
+                                                              if (widget.title ==
+                                                                      'Locations' &&
+                                                                  item['active'] ==
+                                                                      true)
+                                                                IconButton(
+                                                                  icon: Icon(
+                                                                      MdiIcons
+                                                                          .closeBox,
+                                                                      color: Colors
+                                                                              .orange[
+                                                                          700],
+                                                                      size: 20),
+                                                                  onPressed:
+                                                                      () {
+                                                                    final id =
+                                                                        int.tryParse(item['id'].toString()) ??
+                                                                            0;
+                                                                    final maisonId =
+                                                                        int.tryParse(item['maison_id'].toString()) ??
+                                                                            0;
+                                                                    if (id ==
+                                                                            0 ||
+                                                                        maisonId ==
+                                                                            0) {
+                                                                      ScaffoldMessenger.of(
+                                                                              context)
+                                                                          .showSnackBar(
+                                                                        const SnackBar(
+                                                                          content:
+                                                                              Text('ID ou maison_id invalide pour la clôture'),
+                                                                          backgroundColor:
+                                                                              Colors.redAccent,
+                                                                        ),
+                                                                      );
+                                                                      return;
+                                                                    }
+                                                                    _cloturerLocation(
+                                                                        id,
+                                                                        maisonId);
+                                                                  },
+                                                                ),
+                                                              IconButton(
+                                                                icon: Icon(
+                                                                    Icons
+                                                                        .delete,
+                                                                    color: Colors
+                                                                            .red[
                                                                         700],
                                                                     size: 20),
                                                                 onPressed: () {
@@ -1484,62 +1665,28 @@ class _EntityScreenState extends State<EntityScreen> {
                                                                       int.tryParse(
                                                                               item['id'].toString()) ??
                                                                           0;
-                                                                  final maisonId =
-                                                                      int.tryParse(
-                                                                              item['maison_id'].toString()) ??
-                                                                          0;
-                                                                  if (id == 0 ||
-                                                                      maisonId ==
-                                                                          0) {
+                                                                  if (id == 0) {
                                                                     ScaffoldMessenger.of(
                                                                             context)
                                                                         .showSnackBar(
                                                                       const SnackBar(
                                                                         content:
-                                                                            Text('ID ou maison_id invalide pour la clôture'),
+                                                                            Text('ID invalide pour la suppression'),
                                                                         backgroundColor:
                                                                             Colors.redAccent,
                                                                       ),
                                                                     );
                                                                     return;
                                                                   }
-                                                                  _cloturerLocation(
-                                                                      id,
-                                                                      maisonId);
+                                                                  _deleteItem(
+                                                                      id);
                                                                 },
                                                               ),
-                                                            IconButton(
-                                                              icon: Icon(
-                                                                  Icons.delete,
-                                                                  color: Colors
-                                                                      .red[700],
-                                                                  size: 20),
-                                                              onPressed: () {
-                                                                final id = int.tryParse(
-                                                                        item['id']
-                                                                            .toString()) ??
-                                                                    0;
-                                                                if (id == 0) {
-                                                                  ScaffoldMessenger.of(
-                                                                          context)
-                                                                      .showSnackBar(
-                                                                    const SnackBar(
-                                                                      content: Text(
-                                                                          'ID invalide pour la suppression'),
-                                                                      backgroundColor:
-                                                                          Colors
-                                                                              .redAccent,
-                                                                    ),
-                                                                  );
-                                                                  return;
-                                                                }
-                                                                _deleteItem(id);
-                                                              },
-                                                            ),
-                                                          ],
+                                                            ],
+                                                          ),
                                                         ),
-                                                      ),
-                                                    ],
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
                                               );
