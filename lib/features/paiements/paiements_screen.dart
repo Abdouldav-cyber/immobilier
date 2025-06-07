@@ -16,20 +16,20 @@ class PaiementsScreen extends EntityScreen {
               'icon': Icons.attach_money,
             },
             {
-              'name': 'date',
+              'name': 'date_paiement',
               'label': 'Date',
               'type': 'date',
               'icon': Icons.date_range,
             },
             {
-              'name': 'location_id',
+              'name': 'location',
               'label': 'ID de la Location',
               'type': 'dropdown',
               'icon': Icons.location_on,
               'options_endpoint': 'locations',
-              'validator': (value) {
-                return null; // Optionnel
-              },
+              'display_field': 'id', // Utiliser l'ID comme référence
+              'validator': (value) =>
+                  value == null ? 'Choisissez une location' : null,
             },
           ],
           icon: Icons.payment,

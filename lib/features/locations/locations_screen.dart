@@ -11,11 +11,13 @@ class LocationsScreen extends EntityScreen {
           service: LocationService(),
           fields: [
             {
-              'name': 'maison_id',
+              'name': 'maison',
               'label': 'Maison',
               'type': 'dropdown',
               'icon': Icons.home,
               'options_endpoint': 'maisons',
+              'display_field':
+                  'immat', // Utiliser immat comme identifiant clair
             },
             {
               'name': 'locataire',
@@ -48,13 +50,13 @@ class LocationsScreen extends EntityScreen {
               'icon': MdiIcons.calendar,
             },
             {
-              'name': 'nom_client',
+              'name': 'nom',
               'label': 'Nom du client',
               'type': 'text',
               'icon': MdiIcons.account,
             },
             {
-              'name': 'prenom_client',
+              'name': 'prenom',
               'label': 'Prénom du client',
               'type': 'text',
               'icon': MdiIcons.account,

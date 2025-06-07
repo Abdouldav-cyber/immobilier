@@ -6,7 +6,7 @@ import 'package:gestion_immo/data/services/base_service.dart';
 import 'package:gestion_immo/data/services/agence_service.dart';
 import 'package:gestion_immo/data/services/location_service.dart';
 import 'package:gestion_immo/data/services/maison_service.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
@@ -115,7 +115,7 @@ class _EntityScreenState extends State<EntityScreen> {
 
   Future<void> fetchOptions() async {
     for (var field in widget.fields) {
-      if (field['type'] == 'dropdown' || field['type'] == 'multi_select') {
+      if (field['type'] == 'dropdown') {
         final endpoint = field['options_endpoint'];
         if (endpoint != null && !optionsCache.containsKey(endpoint)) {
           try {
@@ -129,9 +129,10 @@ class _EntityScreenState extends State<EntityScreen> {
                 optionsCache[endpoint] = (response as List<dynamic>)
                     .map((item) => {
                           'id': item['id']?.toString() ?? '',
-                          'label': item['nom']?.toString() ??
-                              item['numero']?.toString() ??
+                          'label': item[field['display_field']]?.toString() ??
+                              item['nom']?.toString() ??
                               item['locataire']?.toString() ??
+                              item['id']?.toString() ??
                               'N/A',
                           'agence_id': item['agence_id']?.toString() ?? '',
                         })
@@ -214,43 +215,27 @@ class _EntityScreenState extends State<EntityScreen> {
 
   Future<void> _pickImage({required bool isLogo}) async {
     try {
-      if (!kIsWeb) {
-        final status = await Permission.photos.request();
-        if (status.isGranted) {
-          final picker = ImagePicker();
-          if (isLogo) {
-            final pickedFile =
-                await picker.pickImage(source: ImageSource.gallery);
-            if (pickedFile != null && mounted) {
-              setState(() {
-                selectedLogoPath = pickedFile.path;
-              });
-            }
-          } else {
-            final pickedFiles = await picker.pickMultiImage();
-            if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
-              setState(() {
-                selectedPhotoPaths =
-                    pickedFiles.map((file) => file.path).toList();
-              });
-            }
-          }
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Permission refusée'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+      if (isLogo) {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+        );
+        if (result != null && mounted) {
+          setState(() {
+            selectedLogoPath =
+                result.files.single.path ?? result.files.single.name;
+          });
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-                'La sélection de photos n\'est pas supportée sur le web. Utilisez un appareil mobile.'),
-            backgroundColor: Colors.yellow[700],
-          ),
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowMultiple: true,
         );
+        if (result != null && result.files.isNotEmpty && mounted) {
+          setState(() {
+            selectedPhotoPaths =
+                result.files.map((file) => file.path ?? file.name).toList();
+          });
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -355,10 +340,8 @@ class _EntityScreenState extends State<EntityScreen> {
                               ].contains(field['name']))
                           .map((field) {
                         if (field['type'] == 'dropdown') {
-                          final options = field['options'] != null
-                              ? List<Map<String, dynamic>>.from(
-                                  field['options'])
-                              : optionsCache[field['options_endpoint']] ?? [];
+                          final options =
+                              optionsCache[field['options_endpoint']] ?? [];
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 20),
                             child: DropdownButtonFormField<String>(
@@ -390,12 +373,9 @@ class _EntityScreenState extends State<EntityScreen> {
                               ),
                               value: formData[field['name']]?.toString(),
                               items: options.map((option) {
-                                final value = option['id']?.toString() ??
-                                    option['value']?.toString() ??
-                                    '';
-                                final label = option['label']?.toString() ??
-                                    option['nom']?.toString() ??
-                                    value;
+                                final value = option['id']?.toString() ?? '';
+                                final label =
+                                    option['label']?.toString() ?? value;
                                 return DropdownMenuItem<String>(
                                   value: value,
                                   child: Text(label,
@@ -454,6 +434,11 @@ class _EntityScreenState extends State<EntityScreen> {
                                     } else if (field['name'] == 'date') {
                                       selectedDate = picked;
                                       formData['date'] =
+                                          picked.toIso8601String();
+                                    } else if (field['name'] ==
+                                        'date_paiement') {
+                                      selectedDate = picked;
+                                      formData['date_paiement'] =
                                           picked.toIso8601String();
                                     }
                                   });
@@ -951,14 +936,17 @@ class _EntityScreenState extends State<EntityScreen> {
       Map<String, dynamic> item, Map<String, dynamic> field) {
     final fieldName = field['name'];
     final rawValue = item[fieldName];
-    if (rawValue == null) return 'Non spécifié';
+    if (rawValue == null || rawValue.toString().isEmpty) return '';
     if (field['type'] == 'dropdown' && field['options_endpoint'] != null) {
       final endpoint = field['options_endpoint'];
       if (optionsCache.containsKey(endpoint)) {
         final option = optionsCache[endpoint]!.firstWhere(
           (opt) => opt['id'] == rawValue.toString(),
-          orElse: () =>
-              {'id': '', 'label': rawValue.toString(), 'agence_id': ''},
+          orElse: () => {
+            'id': rawValue.toString(),
+            'label': rawValue.toString(),
+            'agence_id': ''
+          },
         );
         return option['label'] ?? rawValue.toString();
       }
@@ -979,6 +967,7 @@ class _EntityScreenState extends State<EntityScreen> {
       case 'date_debut':
       case 'date_fin':
       case 'date':
+      case 'date_paiement':
         return MdiIcons.calendar;
       case 'numero':
         return MdiIcons.numeric;
@@ -986,6 +975,10 @@ class _EntityScreenState extends State<EntityScreen> {
         return MdiIcons.currencyUsd;
       case 'description':
         return MdiIcons.textBox;
+      case 'maison':
+        return Icons.home;
+      case 'locataire':
+        return MdiIcons.account;
       default:
         return field['icon'] ?? MdiIcons.information;
     }
@@ -1071,11 +1064,12 @@ class _EntityScreenState extends State<EntityScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          value,
+                                          value.isEmpty
+                                              ? 'Non disponible'
+                                              : value,
                                           style: const TextStyle(
-                                            color: Colors.black87,
-                                            fontSize: 16,
-                                          ),
+                                              color: Colors.black87,
+                                              fontSize: 16),
                                         ),
                                       ],
                                     ),
@@ -1613,7 +1607,7 @@ class _EntityScreenState extends State<EntityScreen> {
                                                               ),
                                                               if (widget.title ==
                                                                       'Locations' &&
-                                                                  item['active'] ==
+                                                                  item['cloture'] !=
                                                                       true)
                                                                 IconButton(
                                                                   icon: Icon(
@@ -1629,7 +1623,8 @@ class _EntityScreenState extends State<EntityScreen> {
                                                                         int.tryParse(item['id'].toString()) ??
                                                                             0;
                                                                     final maisonId =
-                                                                        int.tryParse(item['maison_id'].toString()) ??
+                                                                        int.tryParse(item['maison']?['id']?.toString() ??
+                                                                                '0') ??
                                                                             0;
                                                                     if (id ==
                                                                             0 ||

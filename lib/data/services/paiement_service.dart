@@ -6,9 +6,10 @@ class PaiementService extends BaseService {
   @override
   Future<dynamic> create(dynamic item) async {
     final sanitizedItem = {
-      'montant': item['montant'],
-      'date': item['date'],
-      'location_id': item['location_id'],
+      'montant': item['montant']?.toString() ?? '0',
+      'date_paiement':
+          item['date_paiement']?.toString() ?? '', // Utiliser date_paiement
+      'location': item['location']?.toString() ?? '',
       'sup': item['sup'] ?? false,
     };
     return super.create(sanitizedItem);
@@ -17,9 +18,9 @@ class PaiementService extends BaseService {
   @override
   Future<dynamic> update(dynamic id, dynamic item) async {
     final sanitizedItem = {
-      'montant': item['montant'],
-      'date': item['date'],
-      'location_id': item['location_id'],
+      'montant': item['montant']?.toString() ?? '0',
+      'date_paiement': item['date_paiement']?.toString() ?? '',
+      'location': item['location']?.toString() ?? '',
       'sup': item['sup'] ?? false,
     };
     return super.update(id, sanitizedItem);

@@ -19,15 +19,14 @@ class LocationService extends BaseService {
   @override
   Future<dynamic> create(dynamic item) async {
     final sanitizedItem = {
-      'maison_id': item['maison_id']?.toString() ?? '',
+      'maison': item['maison']?.toString() ?? '',
       'locataire': item['locataire']?.toString() ?? '',
       'date_debut': item['date_debut']?.toString() ?? '',
       'date_fin': item['date_fin']?.toString() ?? '',
       'montant_loyer': item['montant_loyer']?.toString() ?? '0',
       'date': item['date']?.toString() ?? '',
-      'type_document': item['type_document']?.toString() ?? '',
-      'nom_client': item['nom_client']?.toString() ?? '',
-      'prenom_client': item['prenom_client']?.toString() ?? '',
+      'nom': item['nom']?.toString() ?? '',
+      'prenom': item['prenom']?.toString() ?? '',
     };
     return super.create(sanitizedItem);
   }
@@ -35,22 +34,20 @@ class LocationService extends BaseService {
   @override
   Future<dynamic> update(dynamic id, dynamic item) async {
     final sanitizedItem = {
-      'maison_id': item['maison_id']?.toString() ?? '',
+      'maison': item['maison']?.toString() ?? '',
       'locataire': item['locataire']?.toString() ?? '',
       'date_debut': item['date_debut']?.toString() ?? '',
       'date_fin': item['date_fin']?.toString() ?? '',
       'montant_loyer': item['montant_loyer']?.toString() ?? '0',
       'date': item['date']?.toString() ?? '',
-      'type_document': item['type_document']?.toString() ?? '',
-      'nom_client': item['nom_client']?.toString() ?? '',
-      'prenom_client': item['prenom_client']?.toString() ?? '',
+      'nom': item['nom']?.toString() ?? '',
+      'prenom': item['prenom']?.toString() ?? '',
     };
     return super.update(id, sanitizedItem);
   }
 
   Future<dynamic> cloturerLocation(int id, int maisonId) async {
-    final url =
-        Uri.parse('$baseUrl/api/locations/$id/cloturer/'); // Ajout de /api/
+    final url = Uri.parse('$baseUrl/api/locations/$id/cloturer/');
     final headers = await _getHeaders();
     final response = await http.put(
       url,
@@ -64,7 +61,6 @@ class LocationService extends BaseService {
     }
   }
 
-  /// Décode la réponse JSON avec gestion des erreurs.
   dynamic _decodeJsonResponse(http.Response response) {
     try {
       final data = jsonDecode(response.body);
